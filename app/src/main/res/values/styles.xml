@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="AppTheme" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="fontFamily">@font/roadock_sans</item>
+        <item name="android:fontFamily">@font/roadock_sans</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowBackground">#101010</item>
+        <item name="android:colorBackground">#101010</item>
+        <item name="colorSurface">#101010</item>
+        <item name="colorSurfaceContainer">#1C1C1C</item>
+        <item name="colorSurfaceContainerHigh">#242424</item>
+        <item name="colorOnSurface">#ECECEC</item>
+        <item name="colorOnSurfaceVariant">#A6A6A6</item>
+        <item name="colorOutline">#707070</item>
+        <item name="colorOutlineVariant">#343434</item>
+        <item name="colorPrimary">#ECECEC</item>
+        <item name="colorOnPrimary">#101010</item>
+        <item name="colorSecondary">#C8C8C8</item>
+        <item name="colorOnSecondary">#101010</item>
+        <item name="colorError">#F2B8B5</item>
+        <item name="android:colorAccent">#ECECEC</item>
+        <item name="materialAlertDialogTheme">@style/Roadock.Dialog</item>
+        <item name="tabStyle">@style/Roadock.Tabs</item>
+    </style>
+    <style name="Roadock.Dialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="fontFamily">@font/roadock_sans</item>
+        <item name="android:fontFamily">@font/roadock_sans</item>
+    </style>
+    <style name="Roadock.Tabs" parent="Widget.Material3.TabLayout">
+        <item name="tabTextAppearance">@style/Roadock.TabLabel</item>
+        <item name="tabTextColor">#A6A6A6</item>
+        <item name="tabSelectedTextColor">#ECECEC</item>
+        <item name="tabIndicatorColor">#ECECEC</item>
+        <item name="tabIndicatorHeight">2dp</item>
+        <item name="tabIndicatorFullWidth">false</item>
+        <item name="tabPaddingStart">16dp</item>
+        <item name="tabPaddingEnd">16dp</item>
+        <item name="tabMinWidth">80dp</item>
+        <item name="tabRippleColor">#20FFFFFF</item>
+    </style>
+    <style name="Roadock.TabLabel" parent="TextAppearance.Material3.LabelLarge">
+        <item name="fontFamily">@font/pretendard_medium</item>
+        <item name="android:fontFamily">@font/pretendard_medium</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+</resources>

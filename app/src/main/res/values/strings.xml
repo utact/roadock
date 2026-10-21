@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Roadock</string>
+    <string name="widget_description">프로젝트 체크리스트와 개인 할 일</string>
+    <string name="previous_project">이전 체크리스트</string>
+    <string name="next_project">다음 체크리스트</string>
+    <string name="open_app">앱에서 열기</string>
+    <string name="previous_symbol" translatable="false">‹</string>
+    <string name="next_symbol" translatable="false">›</string>
+</resources>

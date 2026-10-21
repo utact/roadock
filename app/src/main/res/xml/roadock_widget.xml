@@ -1,0 +1,10 @@
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools" tools:targetApi="31"
+    android:minWidth="350dp" android:minHeight="180dp"
+    android:minResizeWidth="320dp" android:minResizeHeight="140dp"
+    android:targetCellWidth="5" android:targetCellHeight="3"
+    android:initialLayout="@layout/roadock_widget"
+    android:previewLayout="@layout/roadock_widget"
+    android:description="@string/widget_description"
+    android:updatePeriodMillis="1800000"
+    android:resizeMode="horizontal|vertical" android:widgetCategory="home_screen" />

@@ -5,9 +5,11 @@ local.properties
 !.env.example
 
 # Build outputs and caches
+**/build/
+*.apk
+*.aab
 .gradle/
 .kotlin/
-**/build/
 captures/
 
 # Signing credentials
