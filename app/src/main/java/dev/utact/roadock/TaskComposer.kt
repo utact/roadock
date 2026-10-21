@@ -14,6 +14,7 @@ import android.widget.LinearLayout
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowCompat
+import androidx.core.view.OneShotPreDrawListener
 import androidx.core.widget.NestedScrollView
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
@@ -75,14 +76,25 @@ class TaskComposer : BottomSheetDialogFragment() {
         })
         update()
         root.addView(add, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(20) })
-        ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
+        val scroll = NestedScrollView(context).apply { addView(root) }
+        fun positionContent() {
+            OneShotPreDrawListener.add(scroll) {
+                val available = scroll.height - scroll.paddingTop - scroll.paddingBottom
+                scroll.scrollTo(0, (root.height - available).coerceAtLeast(0))
+            }
+        }
+        ViewCompat.setOnApplyWindowInsetsListener(scroll) { view, insets ->
             val types = WindowInsetsCompat.Type.systemBars() or
                 (if (Build.VERSION.SDK_INT >= 30) WindowInsetsCompat.Type.ime() else 0)
             val bottom = insets.getInsets(types).bottom
-            view.setPadding(dp(24), dp(24), dp(24), dp(24) + bottom)
+            view.setPadding(0, 0, 0, bottom)
+            positionContent()
             insets
         }
-        sheet.setContentView(NestedScrollView(context).apply { addView(root) })
+        scroll.addOnLayoutChangeListener { _, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
+            if (right - left != oldRight - oldLeft || bottom - top != oldBottom - oldTop) positionContent()
+        }
+        sheet.setContentView(scroll)
         return sheet
     }
 

@@ -7,8 +7,11 @@
         <item name="android:windowBackground">#101010</item>
         <item name="android:colorBackground">#101010</item>
         <item name="colorSurface">#101010</item>
+        <item name="colorSurfaceContainerLowest">#101010</item>
+        <item name="colorSurfaceContainerLow">#1C1C1C</item>
         <item name="colorSurfaceContainer">#1C1C1C</item>
         <item name="colorSurfaceContainerHigh">#242424</item>
+        <item name="colorSurfaceContainerHighest">#2C2C2C</item>
         <item name="colorOnSurface">#ECECEC</item>
         <item name="colorOnSurfaceVariant">#A6A6A6</item>
         <item name="colorOutline">#707070</item>
