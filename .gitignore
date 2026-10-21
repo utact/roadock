@@ -1,0 +1,30 @@
+# Local configuration
+local.properties
+.env
+.env.*
+!.env.example
+
+# Build outputs and caches
+.gradle/
+.kotlin/
+**/build/
+captures/
+
+# Signing credentials
+*.jks
+*.keystore
+keystore.properties
+
+# Temporary files and diagnostics
+.local/
+*.log
+*.hprof
+*.tmp
+__pycache__/
+
+# IDE and operating system files
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+Desktop.ini
