@@ -1,4 +1,4 @@
-# ROADOCK
+![ROADOCK](assets/roadock-banner.webp)
 
 An Android app and home screen widget for developers working with AI coding agents.
 
