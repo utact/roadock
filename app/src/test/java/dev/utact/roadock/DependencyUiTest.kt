@@ -54,6 +54,16 @@ class DependencyUiTest {
         }
     }
 
+    private fun centerY(view: View): Float {
+        var center = view.height / 2f
+        var current: View? = view
+        while (current != null) {
+            center += current.top
+            current = current.parent as? View
+        }
+        return center
+    }
+
     @Test fun appUpdatesWaitingLabelsInBothLayoutsAndRestoresThemOffline() {
         for (split in listOf(false, true)) {
             val store = seed(split)
@@ -66,6 +76,10 @@ class DependencyUiTest {
             assertEquals(View.GONE, label(3).visibility)
             assertEquals(View.GONE, label(4).visibility)
             assertEquals("선행 작업 확인 필요", label(5).text.toString())
+            val checkbox = root.findViewWithTag<View>("task-dependencies-2")
+            val title = root.findViewWithTag<View>("text-dependencies-2")
+            assertEquals(centerY(title), centerY(checkbox), 1f)
+            assertTrue(centerY(checkbox) < centerY(label(2)))
             label(2).performClick()
             val detail = ShadowDialog.getLatestDialog() as AlertDialog
             assertEquals("API 실호출 검증\n\nAPI 키 발급 대기",
@@ -87,6 +101,24 @@ class DependencyUiTest {
             assertEquals(View.VISIBLE, label(2).visibility)
             assertEquals("API 키 발급 대기", label(2).text.toString())
             controller.pause().stop().destroy()
+        }
+    }
+
+    @Test @Config(sdk = [28, 34]) fun widgetAlignsCheckboxWithTaskTitleAtEveryTextSize() {
+        val store = seed()
+        val task = store.cache(project.id).items[2]
+        val dependency = TaskDependencies(store.cache(project.id).items).status(task)
+        for (size in 10..16) {
+            store.setWidgetTextSize(size)
+            val row = RoadockWidget.rowView(context, task, dependency).apply(context, FrameLayout(context))
+            row.measure(View.MeasureSpec.makeMeasureSpec(360, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
+            row.layout(0, 0, row.measuredWidth, row.measuredHeight)
+            val checkbox = row.findViewById<View>(R.id.widget_check)
+            val title = row.findViewById<View>(R.id.widget_row_text)
+            val note = row.findViewById<View>(R.id.widget_dependency)
+            assertEquals(centerY(title), centerY(checkbox), 1f)
+            assertTrue(centerY(checkbox) < centerY(note))
         }
     }
 

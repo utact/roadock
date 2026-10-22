@@ -2,6 +2,7 @@ package dev.utact.roadock
 
 import android.annotation.SuppressLint
 import android.content.res.ColorStateList
+import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
@@ -139,12 +140,19 @@ class ChecklistAdapter(
         holder.root.deleteButton.setOnClickListener { delete(item.id) }
         val context = holder.root.context
         val dependencyText = item.dependency.description(context)
+        val mainRowHeight = if (compact) 48 else RoadockDesign.listRow
         holder.root.layoutParams.height = RoadockDesign.dp(context,
-            if (dependencyText.isNotEmpty()) { if (compact) 64 else 72 }
-            else if (compact) 48 else RoadockDesign.listRow)
+            mainRowHeight + if (dependencyText.isEmpty()) 0 else 18)
+        listOf(holder.check, holder.handle).forEach { control ->
+            (control.layoutParams as LinearLayout.LayoutParams).apply {
+                gravity = Gravity.TOP
+                topMargin = RoadockDesign.dp(context, (mainRowHeight - 48) / 2)
+            }
+        }
         holder.root.content.setPadding(RoadockDesign.dp(context, if (compact) 4 + item.depth * 4 else RoadockDesign.screenInset - 12 + item.depth * 12),
             0, RoadockDesign.dp(context, if (compact) 4 else 12), 0)
         RoadockDesign.styleText(holder.label, if (compact) 13 else RoadockDesign.body)
+        holder.label.layoutParams.height = RoadockDesign.dp(context, if (compact) 19 else 24)
         holder.check.setOnCheckedChangeListener(null)
         holder.check.tag = "task-${item.id}"
         holder.check.isChecked = item.checked
@@ -248,11 +256,13 @@ class ChecklistAdapter(
             label.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
             label.setSingleLine()
             label.ellipsize = android.text.TextUtils.TruncateAt.END
+            label.gravity = Gravity.CENTER_VERTICAL
+            dependency.gravity = Gravity.CENTER_VERTICAL
             root.content.addView(LinearLayout(context).apply {
                 orientation = LinearLayout.VERTICAL
                 setPadding(0, 0, RoadockDesign.dp(context, 8), 0)
                 addView(label, LinearLayout.LayoutParams(-1, -2))
-                addView(dependency, LinearLayout.LayoutParams(-1, -2))
+                addView(dependency, LinearLayout.LayoutParams(-1, RoadockDesign.dp(context, 18)))
             }, LinearLayout.LayoutParams(0, -2, 1f))
             root.content.addView(handle, LinearLayout.LayoutParams(RoadockDesign.dp(context, 48), RoadockDesign.dp(context, 48)))
         }

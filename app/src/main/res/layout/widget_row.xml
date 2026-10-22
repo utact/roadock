@@ -1,12 +1,11 @@
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_row" android:layout_width="match_parent" android:layout_height="wrap_content"
-    android:orientation="horizontal" android:gravity="center_vertical" android:layout_gravity="center_vertical">
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_row" android:layout_width="match_parent" android:layout_height="wrap_content">
     <ImageView android:id="@+id/widget_check" android:layout_width="wrap_content" android:layout_height="wrap_content"
-        android:importantForAccessibility="no" />
-    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
-        android:layout_weight="1" android:orientation="vertical">
-        <TextView android:id="@+id/widget_row_text" style="@style/Roadock.WidgetLabel" />
-        <TextView android:id="@+id/widget_dependency" style="@style/Roadock.WidgetLabel"
-            android:layout_height="18dp" android:visibility="gone" />
-    </LinearLayout>
-</LinearLayout>
+        android:layout_alignTop="@+id/widget_row_text" android:layout_alignBottom="@id/widget_row_text"
+        android:scaleType="center" android:importantForAccessibility="no" />
+    <TextView android:id="@id/widget_row_text" style="@style/Roadock.WidgetLabel"
+        android:layout_toEndOf="@id/widget_check" />
+    <TextView android:id="@+id/widget_dependency" style="@style/Roadock.WidgetLabel"
+        android:layout_below="@id/widget_row_text" android:layout_alignStart="@id/widget_row_text"
+        android:layout_height="18dp" android:visibility="gone" />
+</RelativeLayout>
