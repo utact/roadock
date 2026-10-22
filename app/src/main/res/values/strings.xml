@@ -96,4 +96,7 @@
     <string name="widget_open">%1$s, open in app</string>
     <string name="widget_limit">First %1$d items; open the app to view all</string>
     <string name="widget_empty_tasks">Add tasks in the app</string>
+    <string name="waiting_for">Waiting for %1$s</string>
+    <string name="dependency_unresolved">Check prerequisites</string>
+    <string name="dependency_references">References to check: %1$s</string>
 </resources>

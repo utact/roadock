@@ -78,7 +78,9 @@ class RoadockWidget : AppWidgetProvider() {
         }
 
         fun entries(context: Context, page: String, owner: TaskOwner? = null): List<RemoteViews> {
-            val tasks = rows(context, page).filter { owner == null || it.owner == owner }.take(MAX_ROWS)
+            val allTasks = rows(context, page)
+            val dependencies = TaskDependencies(allTasks)
+            val tasks = allTasks.filter { owner == null || it.owner == owner }.take(MAX_ROWS)
             val grouped = owner == null && page != RoadockStore.PERSONAL && tasks.any { it.owner == TaskOwner.HUMAN }
             return buildList {
                 var previous: TaskOwner? = null
@@ -88,13 +90,13 @@ class RoadockWidget : AppWidgetProvider() {
                         setTextViewTextSize(R.id.widget_section, TypedValue.COMPLEX_UNIT_PX, pixels(10))
                         setInt(R.id.widget_section, "setHeight", pixels(18).toInt())
                     })
-                    add(rowView(context, item))
+                    add(rowView(context, item, dependencies.status(item)))
                     previous = item.owner
                 }
             }
         }
 
-        fun rowView(context: Context, item: ChecklistItem): RemoteViews =
+        fun rowView(context: Context, item: ChecklistItem, dependency: DependencyStatus = DependencyStatus()): RemoteViews =
             RemoteViews(context.packageName, R.layout.widget_row).apply {
                 setTextViewText(R.id.widget_row_text, item.text.take(300))
                 setTextViewTextSize(R.id.widget_row_text, TypedValue.COMPLEX_UNIT_PX, pixels(RoadockStore(context).widgetTextSize()))
@@ -103,6 +105,15 @@ class RoadockWidget : AppWidgetProvider() {
                 setImageViewBitmap(R.id.widget_check, checkbox(context, item.checked, RoadockStore(context).widgetTextSize()))
                 setViewPadding(R.id.widget_row, pixels(item.depth.coerceIn(0, 4) * 8).toInt(), 0, 0, 0)
                 setViewPadding(R.id.widget_row_text, pixels(10).toInt(), 0, 0, 0)
+                val dependencyText = dependency.description(context)
+                setTextViewText(R.id.widget_dependency, dependencyText.take(300))
+                setViewVisibility(R.id.widget_dependency, if (dependencyText.isEmpty()) View.GONE else View.VISIBLE)
+                setTextViewTextSize(R.id.widget_dependency, TypedValue.COMPLEX_UNIT_PX,
+                    pixels((RoadockStore(context).widgetTextSize() - 2).coerceAtLeast(10)))
+                setInt(R.id.widget_dependency, "setHeight", pixels(18).toInt())
+                setTextColor(R.id.widget_dependency, if (dependency.unresolved.isEmpty()) 0xFFD4BD8A.toInt() else 0xFFF2B8B5.toInt())
+                setViewPadding(R.id.widget_dependency, pixels(10).toInt(), 0, 0, 0)
+                setContentDescription(R.id.widget_row, listOf(item.text, dependencyText).filter { it.isNotEmpty() }.joinToString(", "))
             }
 
         private fun appearance(context: Context, views: RemoteViews) {

@@ -9,6 +9,7 @@
 - [ ] 실기기 오프라인 데이터 유지 확인 <!-- roadock:offline-device -->
 - [x] 실기기 비공개 저장소 인증 확인 <!-- roadock:private-repo -->
 - [ ] Human 체크 원격 저장 확인 <!-- roadock:human-sync -->
+- [ ] 실기기 선행 작업 대기 표시 확인 <!-- roadock:dependency-device -->
 - [x] 승인 후 GitHub Releases 배포 <!-- roadock:release-approval -->
 
 ## Agent
@@ -66,6 +67,7 @@
 - [x] 폰트 라이선스 간결한 표시
 - [x] 모달 간격 통일·라이선스 문단 정렬
 - [x] 대상 프로젝트 지침·표시 범위 명시
+- [x] Human·Agent 분류 지침·가독성 정리
 - [x] 아이콘 기반 README 배너 적용
 - [x] 스플래시 배경을 아이콘과 같은 순수 검정으로 통일
 
@@ -73,13 +75,13 @@
 
 - [x] 빌드·서명 설정 안내 간소화
 - [x] README 제품 소개·설치 안내 정리
+- [x] README에 다음 작업·개입 가치 반영
 - [x] APK 빌드
 
-### Next Version
+### Task Dependencies
 
-- [ ] Human·Agent 공통 작업 ID 설계
-- [ ] ID 기반 선행 관계 형식 정의
-- [ ] 누락·중복·순환 참조 검증
-- [ ] 선행 관계용 템플릿·캐시 확장
-- [ ] 2열 항목 간 곡선 연결 표시
-- [ ] 독립 스크롤 시 연결 위치 갱신
+- [x] Human 선행 조건 파싱·캐시 보존
+  Agent의 `Requires`로 Human ID를 참조하고 완료 상태로 대기 여부를 판단한다.
+- [x] 선행 참조 누락·중복 검증
+- [x] 앱·위젯에 선행 작업 대기 표시
+  미완료 선행 작업의 이름을 표시하고 완료되면 대기 표시를 해제한다.

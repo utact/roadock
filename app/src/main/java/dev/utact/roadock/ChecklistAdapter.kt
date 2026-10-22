@@ -15,7 +15,8 @@ import com.google.android.material.checkbox.MaterialCheckBox
 
 data class ChecklistRow(val id: String, val text: String, val checked: Boolean, val depth: Int = 0,
     val projectId: String? = null, val source: ChecklistItem? = null,
-    val canToggle: Boolean = false, val section: TaskOwner? = null)
+    val canToggle: Boolean = false, val section: TaskOwner? = null,
+    val dependency: DependencyStatus = DependencyStatus())
 
 class ChecklistAdapter(
     private val toggle: (ChecklistRow) -> Unit,
@@ -137,7 +138,10 @@ class ChecklistAdapter(
         holder.root.deleteButton.contentDescription = holder.root.context.getString(R.string.delete_task, item.text)
         holder.root.deleteButton.setOnClickListener { delete(item.id) }
         val context = holder.root.context
-        holder.root.layoutParams.height = RoadockDesign.dp(context, if (compact) 48 else RoadockDesign.listRow)
+        val dependencyText = item.dependency.description(context)
+        holder.root.layoutParams.height = RoadockDesign.dp(context,
+            if (dependencyText.isNotEmpty()) { if (compact) 64 else 72 }
+            else if (compact) 48 else RoadockDesign.listRow)
         holder.root.content.setPadding(RoadockDesign.dp(context, if (compact) 4 + item.depth * 4 else RoadockDesign.screenInset - 12 + item.depth * 12),
             0, RoadockDesign.dp(context, if (compact) 4 else 12), 0)
         RoadockDesign.styleText(holder.label, if (compact) 13 else RoadockDesign.body)
@@ -162,6 +166,11 @@ class ChecklistAdapter(
         holder.label.setTextColor(if (item.checked) RoadockDesign.secondary else RoadockDesign.text)
         holder.label.tag = "text-${item.id}"
         holder.label.setOnClickListener { open(item) }
+        holder.dependency.text = dependencyText
+        holder.dependency.tag = "dependency-${item.id}"
+        holder.dependency.visibility = if (dependencyText.isEmpty()) View.GONE else View.VISIBLE
+        holder.dependency.setTextColor(if (item.dependency.unresolved.isEmpty()) 0xFFD4BD8A.toInt() else RoadockDesign.error)
+        holder.dependency.setOnClickListener { open(item) }
         ViewCompat.replaceAccessibilityAction(holder.label, AccessibilityActionCompat.ACTION_CLICK,
             holder.root.context.getString(R.string.view_full_text)) { _, _ -> open(item); true }
         holder.handle.visibility = if (editable) View.VISIBLE else View.GONE
@@ -212,6 +221,11 @@ class ChecklistAdapter(
         val root = itemView as SwipeTaskRow
         val check = MaterialCheckBox(parent.context)
         val label = RoadockDesign.text(parent.context, "")
+        val dependency = RoadockDesign.text(parent.context, "", RoadockDesign.supporting).apply {
+            setSingleLine()
+            ellipsize = android.text.TextUtils.TruncateAt.END
+            visibility = View.GONE
+        }
         val handle = ImageView(parent.context).apply {
             setImageResource(R.drawable.ic_drag)
             scaleType = ImageView.ScaleType.CENTER
@@ -234,8 +248,12 @@ class ChecklistAdapter(
             label.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
             label.setSingleLine()
             label.ellipsize = android.text.TextUtils.TruncateAt.END
-            label.setPadding(0, RoadockDesign.dp(context, 8), RoadockDesign.dp(context, 8), RoadockDesign.dp(context, 8))
-            root.content.addView(label, LinearLayout.LayoutParams(0, -2, 1f))
+            root.content.addView(LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(0, 0, RoadockDesign.dp(context, 8), 0)
+                addView(label, LinearLayout.LayoutParams(-1, -2))
+                addView(dependency, LinearLayout.LayoutParams(-1, -2))
+            }, LinearLayout.LayoutParams(0, -2, 1f))
             root.content.addView(handle, LinearLayout.LayoutParams(RoadockDesign.dp(context, 48), RoadockDesign.dp(context, 48)))
         }
     }

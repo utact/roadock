@@ -224,8 +224,10 @@ class MainActivity : AppCompatActivity() {
         val rows = if (personal) {
             store.tasks().map { ChecklistRow(it.id, it.text, it.checked) }
         } else {
+            val dependencies = TaskDependencies(cache.items)
             val tasks = cache.items.mapIndexed { index, item -> ChecklistRow("${project?.id}-$index", item.text,
-                item.checked, item.depth, project?.id, item, item.owner == TaskOwner.HUMAN && !saving && !loading) }
+                item.checked, item.depth, project?.id, item, item.owner == TaskOwner.HUMAN && !saving && !loading,
+                dependency = dependencies.status(item)) }
             if (tasks.none { it.source?.owner == TaskOwner.HUMAN }) tasks else buildList {
                 for (owner in TaskOwner.entries) {
                     val group = tasks.filter { it.source?.owner == owner }
@@ -316,7 +318,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showTask(item: ChecklistRow) {
-        val content = RoadockDesign.text(this, item.text).apply {
+        val detail = buildList {
+            add(item.text)
+            item.dependency.description(this@MainActivity).takeIf { it.isNotEmpty() }?.let { add(it) }
+            if (item.dependency.unresolved.isNotEmpty()) add(getString(R.string.dependency_references,
+                item.dependency.unresolved.joinToString(", ")))
+        }.joinToString("\n\n")
+        val content = RoadockDesign.text(this, detail).apply {
             tag = "task-full-text"
             setTextIsSelectable(true)
             setPadding(dp(24), dp(8), dp(24), dp(24))

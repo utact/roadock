@@ -4,6 +4,41 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class ChecklistTest {
+    @Test fun parsesIndentedHumanPrerequisitesWithoutLeakingAcrossTasksHeadingsOrFences() {
+        val markdown = "\uFEFF## Human\r\n- [ ] 키 발급 <!-- roadock:key -->\r\n  Requires: ignored\r\n" +
+            "## Agent\r\n- [ ] API 호출\r\n  설명\r\n  Requires: key, access\r\n  Requires: key\r\n" +
+            "- [ ] 독립 작업\r\nRequires: ignored\r\n  Requires: ignored\r\n" +
+            "- [ ] 다른 작업\r\n### Next\r\n  Requires: ignored\r\n" +
+            "- [ ] 예시 작업\r\n```\r\n  Requires: ignored\r\n```\r\n  Requires: ignored\r\n" +
+            "  - [ ] 하위 작업\r\n  Requires: ignored\r\n- [ ] 마지막 작업\r\n\tRequires: key\r\n"
+        val tasks = MarkdownChecklist.parse(markdown)
+        assertEquals(listOf(emptyList(), listOf("key", "access"), emptyList(), emptyList(),
+            emptyList(), emptyList(), listOf("key")), tasks.map { it.requires })
+    }
+
+    @Test fun resolvesOnlyUniqueHumanIdsAndRecomputesWaitingAfterCompletionAndReopening() {
+        val human = ChecklistItem("키 발급", false, owner = TaskOwner.HUMAN, key = "key")
+        val agent = ChecklistItem("API 호출", false, requires = listOf("key", "key"))
+        assertEquals(DependencyStatus(waiting = listOf("키 발급")), TaskDependencies(listOf(human, agent)).status(agent))
+        assertEquals(DependencyStatus(), TaskDependencies(listOf(human.copy(checked = true), agent)).status(agent))
+        assertEquals(DependencyStatus(waiting = listOf("키 발급")), TaskDependencies(listOf(human, agent)).status(agent))
+        assertEquals(DependencyStatus(), TaskDependencies(listOf(human)).status(agent.copy(checked = true)))
+        assertEquals(DependencyStatus(), TaskDependencies(listOf(human)).status(human.copy(requires = listOf("key"))))
+        for (targets in listOf(emptyList(), listOf(human, human.copy(checked = true)), listOf(human.copy(owner = TaskOwner.AGENT)))) {
+            assertEquals(DependencyStatus(unresolved = listOf("key")), TaskDependencies(targets).status(agent))
+        }
+    }
+
+    @Test fun humanCheckboxWritesPreservePrerequisitesAndRecomputeTheirState() {
+        val markdown = "## Human\r\n- [ ] 키 발급 <!-- roadock:key -->\r\n\r\n## Agent\r\n- [ ] API 호출\r\n  Requires: key\r\n"
+        val human = MarkdownChecklist.parse(markdown).first()
+        val updated = MarkdownChecklist.setHumanChecked(markdown, human, true)
+        assertEquals(markdown.replace("- [ ] 키 발급", "- [x] 키 발급"), updated)
+        val tasks = MarkdownChecklist.parse(updated)
+        assertEquals(listOf("key"), tasks.last().requires)
+        assertEquals(DependencyStatus(), TaskDependencies(tasks).status(tasks.last()))
+    }
+
     @Test fun parsesCompletedNestedAndOrderedItems() {
         val markdown = "# Tasks\r\n- [ ] 첫 작업\r\n  - [x] 하위 작업\r\n1. [X] 완료\r\n+ [ ] 추가\r\n* [ ] 항목\r\n"
         assertEquals(listOf(

@@ -16,7 +16,7 @@ class HumanSyncTest {
     private val context get() = RuntimeEnvironment.getApplication()
     private val project = Project("sync", "ROADOCK", "utact", "roadock", "main", "TODO.md")
     private val human = ChecklistItem("API 키 발급", false, owner = TaskOwner.HUMAN, key = "api-key")
-    private val agent = ChecklistItem("인증 구현", false)
+    private val agent = ChecklistItem("인증 구현", false, requires = listOf("api-key"))
 
     private fun client(action: (() -> Boolean) -> List<ChecklistItem>) = object : GitHubClient() {
         override fun setHumanChecked(project: Project, token: String, expected: ChecklistItem, checked: Boolean,
@@ -41,11 +41,13 @@ class HumanSyncTest {
             assertTrue(started.await(5, TimeUnit.SECONDS))
             assertEquals(human, RefreshQueue.pending(project.id))
             assertEquals(original, RoadockStore(context).cache(project.id))
+            assertEquals(listOf(human.text), TaskDependencies(store.cache(project.id).items).status(agent).waiting)
             assertNull(RefreshQueue.setHumanChecked(context, project, human, true, fake))
         } finally { release.countDown() }
         future.get(5, TimeUnit.SECONDS)
         assertNull(RefreshQueue.pending(project.id))
         assertEquals(listOf(human.copy(checked = true), agent), store.cache(project.id).items)
+        assertEquals(DependencyStatus(), TaskDependencies(store.cache(project.id).items).status(agent))
         assertNull(store.cache(project.id).error)
     }
 
@@ -56,6 +58,7 @@ class HumanSyncTest {
         RefreshQueue.setHumanChecked(context, project, human, true, client { throw IOException() })!!
             .get(5, TimeUnit.SECONDS)
         assertEquals(listOf(human, agent), store.cache(project.id).items)
+        assertEquals(listOf(human.text), TaskDependencies(store.cache(project.id).items).status(agent).waiting)
         assertEquals(context.getString(R.string.error_write_unknown), store.cache(project.id).error)
         assertNull(RefreshQueue.pending(project.id))
         val latest = listOf(agent.copy(checked = true))

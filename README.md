@@ -1,12 +1,14 @@
 ![ROADOCK](assets/roadock-banner.webp)
 
-An Android app and home screen widget for developers working with AI coding agents.
+**Your agent's next task. Your next move.**
 
-Follow project progress and tasks that need your input using Markdown checklists synced from GitHub.
+See what your agent has lined up and what needs your input first, even away from your desk.
+Roadock brings GitHub Markdown checklists to your Android home screen, with Human and Agent tasks side by side.
 
 ## Features
 
 - Human completion synced to GitHub; read-only Agent tasks
+- Waiting labels name the Human tasks an Agent task needs first
 - Multiple projects with single-column or split views
 - Independently scrolling lists with cached offline access
 - Separate personal tasks with drag sorting and swipe deletion
@@ -23,6 +25,9 @@ Download the APK from [Releases](https://github.com/utact/roadock/releases). Req
 3. Commit and push the file to GitHub.
 4. Register its repository, branch, and path in the app.
 5. For Human completion sync, add a token with **Contents: read and write** under **Edit project**.
+
+Use `Requires: task-id` below an Agent task to reference a Human task's stable ID.
+Roadock shows a waiting label until that Human task is complete. See the [template](templates/roadock-agent.md) for an example.
 
 Write access is required even for public repositories. Tokens are encrypted on the device.
 

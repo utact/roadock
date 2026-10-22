@@ -58,7 +58,10 @@ class RoadockStore(context: Context) {
                 array.getJSONObject(it).run {
                     ChecklistItem(getString("text"), getBoolean("checked"), optInt("depth"),
                         if (optString("owner") == "HUMAN") TaskOwner.HUMAN else TaskOwner.AGENT,
-                        optString("key").takeIf { value -> value.isNotEmpty() })
+                        optString("key").takeIf { value -> value.isNotEmpty() },
+                        optJSONArray("requires")?.let { keys ->
+                            (0 until keys.length()).map { index -> keys.getString(index) }
+                        }.orEmpty())
                 }
             },
             fetchedAt = json.getLong("fetchedAt"),
@@ -71,7 +74,8 @@ class RoadockStore(context: Context) {
         val items = JSONArray()
         cache.items.forEach {
             items.put(JSONObject().put("text", it.text).put("checked", it.checked).put("depth", it.depth)
-                .put("owner", it.owner.name).apply { it.key?.let { key -> put("key", key) } })
+                .put("owner", it.owner.name).put("requires", JSONArray(it.requires))
+                .apply { it.key?.let { key -> put("key", key) } })
         }
         val json = JSONObject().put("items", items).put("fetchedAt", cache.fetchedAt)
         cache.error?.let { json.put("error", it) }

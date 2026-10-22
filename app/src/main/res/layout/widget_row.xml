@@ -3,5 +3,10 @@
     android:orientation="horizontal" android:gravity="center_vertical" android:layout_gravity="center_vertical">
     <ImageView android:id="@+id/widget_check" android:layout_width="wrap_content" android:layout_height="wrap_content"
         android:importantForAccessibility="no" />
-    <TextView android:id="@+id/widget_row_text" style="@style/Roadock.WidgetRowText" />
+    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+        android:layout_weight="1" android:orientation="vertical">
+        <TextView android:id="@+id/widget_row_text" style="@style/Roadock.WidgetLabel" />
+        <TextView android:id="@+id/widget_dependency" style="@style/Roadock.WidgetLabel"
+            android:layout_height="18dp" android:visibility="gone" />
+    </LinearLayout>
 </LinearLayout>

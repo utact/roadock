@@ -83,4 +83,7 @@
     <string name="widget_open">%1$s, 앱에서 열기</string>
     <string name="widget_limit">처음 %1$d개 · 앱에서 전체 보기</string>
     <string name="widget_empty_tasks">앱에서 할 일을 추가하세요</string>
+    <string name="waiting_for">%1$s 대기</string>
+    <string name="dependency_unresolved">선행 작업 확인 필요</string>
+    <string name="dependency_references">확인할 참조: %1$s</string>
 </resources>
