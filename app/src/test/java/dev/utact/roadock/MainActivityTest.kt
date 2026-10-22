@@ -62,6 +62,26 @@ class MainActivityTest {
         list.performItemClick(null, position, list.adapter.getItemId(position))
     }
 
+    private fun swipe(activity: MainActivity, id: String, distance: Float = -120f) {
+        val root = activity.window.decorView
+        val row = root.findViewWithTag<View>("row-$id")
+        val position = IntArray(2)
+        row.getLocationInWindow(position)
+        val x = position[0] + row.width * 0.5f
+        val y = position[1] + row.height / 2f
+        val time = SystemClock.uptimeMillis()
+        fun touch(action: Int, offset: Float) {
+            val event = MotionEvent.obtain(time, SystemClock.uptimeMillis(), action, x + offset, y, 0)
+            root.dispatchTouchEvent(event)
+            event.recycle()
+            shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(32))
+        }
+        touch(MotionEvent.ACTION_DOWN, 0f)
+        for (step in 1..4) touch(MotionEvent.ACTION_MOVE, distance * step / 4)
+        touch(MotionEvent.ACTION_UP, distance)
+        shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(200))
+    }
+
     private fun openComposer(activity: MainActivity): View {
         activity.window.decorView.findViewWithTag<View>("add-personal-task").performClick()
         activity.supportFragmentManager.executePendingTransactions()
@@ -83,14 +103,36 @@ class MainActivityTest {
         activity.window.decorView.findViewWithTag<CheckBox>("task-${task.id}").performClick()
         layout(activity)
         assertTrue(store.tasks().single().checked)
-        activity.window.decorView.findViewWithTag<View>("row-${task.id}").performLongClick()
-        val menu = find<ListView>(ShadowApplication.getInstance().latestPopupWindow.contentView)!!
-        assertEquals(1, menu.adapter.count)
-        assertEquals("삭제", menu.adapter.getItem(0).toString())
-        assertEquals(RoadockDesign.dp(activity, 112), ShadowApplication.getInstance().latestPopupWindow.width)
-        selectTaskMenu(0)
+        swipe(activity, task.id)
+        assertTrue(activity.window.decorView.findViewWithTag<SwipeTaskRow>("row-${task.id}").isRevealed)
+        assertEquals(1, store.tasks().size)
+        activity.window.decorView.findViewWithTag<View>("delete-${task.id}").performClick()
         layout(activity)
         assertTrue(store.tasks().isEmpty())
+        controller.pause().stop().destroy()
+    }
+
+    @Test fun revealsOneDeleteActionAtATimeAndClosesOnReverseSwipe() {
+        val store = RoadockStore(RuntimeEnvironment.getApplication())
+        store.addTask("첫째")
+        store.addTask("둘째")
+        val ids = store.tasks().map { it.id }
+        val controller = Robolectric.buildActivity(MainActivity::class.java).setup()
+        val activity = controller.get()
+        layout(activity)
+        val root = activity.window.decorView
+        val first = root.findViewWithTag<SwipeTaskRow>("row-${ids[0]}")
+        val second = root.findViewWithTag<SwipeTaskRow>("row-${ids[1]}")
+        assertFalse(first.performLongClick())
+        swipe(activity, ids[0])
+        assertTrue(first.isRevealed)
+        swipe(activity, ids[1])
+        assertFalse(first.isRevealed)
+        assertTrue(second.isRevealed)
+        swipe(activity, ids[1], 120f)
+        assertFalse(second.isRevealed)
+        assertEquals(2, store.tasks().size)
+        assertTrue(store.tasks().none { it.checked })
         controller.pause().stop().destroy()
     }
 
@@ -291,11 +333,19 @@ class MainActivityTest {
         root.findViewWithTag<View>("project-actions").performClick()
         val menu = find<ListView>(ShadowApplication.getInstance().latestPopupWindow.contentView)!!
         assertEquals(listOf("Add project"), (0 until menu.adapter.count).map { menu.adapter.getItem(it).toString() })
+        assertTrue(ShadowApplication.getInstance().latestPopupWindow.width < RoadockDesign.dp(activity, 196))
         selectTaskMenu(0)
         val dialog = ShadowDialog.getLatestDialog() as AlertDialog
         val form = dialog.window!!.decorView
         val repository = form.findViewWithTag<EditText>("project-repository")
         val container = repository.parent.parent as TextInputLayout
+        val formGroup = container.parent as ViewGroup
+        val nameField = form.findViewWithTag<EditText>("project-name").parent.parent as TextInputLayout
+        assertTrue(formGroup.indexOfChild(container) < formGroup.indexOfChild(nameField))
+        assertEquals(20f * android.util.DisplayMetrics.DENSITY_DEVICE_STABLE / 160f,
+            form.findViewById<TextView>(androidx.appcompat.R.id.alertTitle).textSize, 0.01f)
+        assertNotEquals(dialog.getButton(AlertDialog.BUTTON_POSITIVE).currentTextColor,
+            dialog.getButton(AlertDialog.BUTTON_NEGATIVE).currentTextColor)
         assertEquals("GitHub repository", container.hint.toString())
         assertEquals("owner/repository", container.placeholderText.toString())
         assertFalse(container.isExpandedHintEnabled)
@@ -334,6 +384,12 @@ class MainActivityTest {
         content.findViewWithTag<Slider>("widget-text-size").value = 14f
         assertEquals(14, RoadockStore(activity).widgetTextSize())
         assertEquals("14", content.findViewWithTag<TextView>("widget-text-size-value").text.toString())
+        val preview = content.findViewWithTag<ViewGroup>("widget-text-preview")
+        assertEquals(3, preview.childCount)
+        val previewLabel = preview.getChildAt(2).findViewById<TextView>(R.id.widget_row_text)
+        assertEquals(24, previewLabel.text.length)
+        assertEquals(14f * android.util.DisplayMetrics.DENSITY_DEVICE_STABLE / 160f, previewLabel.textSize, 0.01f)
+        assertNotNull(preview.getChildAt(0).findViewById<View>(R.id.widget_check))
         val widgetList = widgets.getViewFor(widgetId).findViewById<ListView>(R.id.widget_list)
         val widgetRow = widgetList.adapter.getView(0, null, widgetList)
         assertEquals(14f * android.util.DisplayMetrics.DENSITY_DEVICE_STABLE / 160f,

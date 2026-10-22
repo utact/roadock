@@ -14,7 +14,11 @@
     <string name="widget">위젯</string>
     <string name="text_size">글자 크기</string>
     <string name="widget_text_size">위젯 글자 크기</string>
-    <string name="widget_preview">체크리스트 미리보기</string>
+    <string name="preview">미리보기</string>
+    <string name="widget_sample_short">API 키 발급</string>
+    <string name="widget_sample_done">위젯 전환 확인</string>
+    <string name="widget_sample_long">다음 작업 전 프로젝트 동기화 상태 확인하기</string>
+    <string name="last_refreshed">마지막 조회</string>
     <string name="switch_project">%1$s, 프로젝트 전환</string>
     <string name="completion_count">%1$d/%2$d 완료</string>
     <string name="empty_count">0개</string>
@@ -24,6 +28,7 @@
     <string name="move_up">위로 이동</string>
     <string name="move_down">아래로 이동</string>
     <string name="delete">삭제</string>
+    <string name="delete_task">%1$s 삭제</string>
     <string name="cancel">취소</string>
     <string name="save">저장</string>
     <string name="close">닫기</string>

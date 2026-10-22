@@ -17,7 +17,11 @@
     <string name="widget">Widget</string>
     <string name="text_size">Text size</string>
     <string name="widget_text_size">Widget text size</string>
-    <string name="widget_preview">Checklist preview</string>
+    <string name="preview">Preview</string>
+    <string name="widget_sample_short">Create API key</string>
+    <string name="widget_sample_done">Check widget navigation</string>
+    <string name="widget_sample_long">Review checklist refresh</string>
+    <string name="last_refreshed">Last refreshed</string>
     <string name="switch_project">%1$s, switch project</string>
     <string name="completion_count">%1$d/%2$d completed</string>
     <string name="empty_count">0 tasks</string>
@@ -27,6 +31,7 @@
     <string name="move_up">Move up</string>
     <string name="move_down">Move down</string>
     <string name="delete">Delete</string>
+    <string name="delete_task">Delete %1$s</string>
     <string name="cancel">Cancel</string>
     <string name="save">Save</string>
     <string name="close">Close</string>

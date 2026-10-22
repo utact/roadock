@@ -2,7 +2,6 @@ package dev.utact.roadock
 
 import android.content.Context
 import android.graphics.Paint
-import android.graphics.drawable.GradientDrawable
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
@@ -32,18 +31,22 @@ object AppSettingsDialog {
             }, LinearLayout.LayoutParams(0, dp(40), 1f))
             addView(sizeValue, LinearLayout.LayoutParams(dp(40), dp(40)))
         }, LinearLayout.LayoutParams(-1, dp(40)))
-        val preview = RoadockDesign.text(context, context.getString(R.string.widget_preview)).apply {
+        val preview = LinearLayout(context).apply {
             tag = "widget-text-preview"
-            setSingleLine()
-            ellipsize = android.text.TextUtils.TruncateAt.END
-            gravity = Gravity.CENTER_VERTICAL
-            setTextSize(TypedValue.COMPLEX_UNIT_DIP, store.widgetTextSize().toFloat())
-            setPadding(dp(16), 0, dp(16), 0)
-            background = GradientDrawable().apply {
-                setColor(RoadockDesign.surface)
-                cornerRadius = dp(8).toFloat()
-            }
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(16), dp(8), dp(16), dp(8))
+            setBackgroundResource(R.drawable.widget_background)
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
         }
+        fun renderPreview() {
+            preview.removeAllViews()
+            listOf(
+                ChecklistItem(context.getString(R.string.widget_sample_short), false),
+                ChecklistItem(context.getString(R.string.widget_sample_done), true),
+                ChecklistItem(context.getString(R.string.widget_sample_long), false),
+            ).forEach { preview.addView(RoadockWidget.rowView(context, it).apply(context.applicationContext, preview)) }
+        }
+        renderPreview()
         content.addView(Slider(context).apply {
             tag = "widget-text-size"
             valueFrom = 10f
@@ -55,11 +58,13 @@ object AppSettingsDialog {
             addOnChangeListener { _, size, _ ->
                 store.setWidgetTextSize(size.toInt())
                 sizeValue.text = size.toInt().toString()
-                preview.setTextSize(TypedValue.COMPLEX_UNIT_DIP, size)
+                renderPreview()
                 RoadockWidget.updateAll(context)
             }
         }, LinearLayout.LayoutParams(-1, dp(48)))
-        content.addView(preview, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(8) })
+        content.addView(RoadockDesign.text(context, context.getString(R.string.preview), 12, RoadockDesign.secondary),
+            LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(16); bottomMargin = dp(8) })
+        content.addView(preview, LinearLayout.LayoutParams(-1, -2))
         content.addView(View(context).apply { setBackgroundColor(RoadockDesign.divider) },
             LinearLayout.LayoutParams(-1, dp(1)).apply { topMargin = dp(24); bottomMargin = dp(8) })
         @Suppress("DEPRECATION")

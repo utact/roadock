@@ -15,7 +15,6 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.PopupMenu
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -167,7 +166,6 @@ class MainActivity : AppCompatActivity() {
             clipToPadding = false
             setPadding(0, 0, 0, dp(24))
         }
-        adapter.touchHelper.attachToRecyclerView(list)
         empty = RoadockDesign.text(this, "", 14, RoadockDesign.secondary).apply {
             gravity = Gravity.CENTER
         }
@@ -268,65 +266,55 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun chooseProject(anchor: View) {
-        val projects = store.projects()
-        PopupMenu(this, anchor).apply {
-            projects.forEachIndexed { index, project ->
-                menu.add(1, index, index, project.name).apply { isCheckable = true; isChecked = project.id == selected }
+        RoadockMenu.show(this, anchor, store.projects().map { project ->
+            RoadockMenuItem(project.name, checked = project.id == selected) {
+                selected = project.id
+                store.selectPage(selected)
+                showPage()
+                list.scrollToPosition(0)
             }
-            menu.setGroupCheckable(1, true, true)
-            setOnMenuItemClickListener {
-                projects.getOrNull(it.itemId)?.let { project ->
-                    selected = project.id
-                    store.selectPage(selected)
-                    showPage()
-                    list.scrollToPosition(0)
-                }
-                true
-            }
-            show()
-        }
+        })
     }
 
     private fun showProjectActions(anchor: View) {
         val project = currentProject()
-        PopupMenu(this, anchor).apply {
-            menu.add(0, 4, 0, R.string.add_project)
-            if (project != null) {
-                menu.add(0, 6, 1, R.string.refresh).isEnabled = project.id !in refreshing
-                menu.add(0, 1, 2, R.string.project_settings)
-                menu.add(0, 2, 3, R.string.sync_info)
-                menu.add(0, 3, 4, R.string.delete_project)
+        val items = mutableListOf(RoadockMenuItem(getString(R.string.add_project)) { projectDialog() })
+        if (project != null) {
+            items += RoadockMenuItem(getString(R.string.refresh), enabled = project.id !in refreshing) { refresh(project.id) }
+            items += RoadockMenuItem(getString(R.string.project_settings)) { projectDialog(project) }
+            items += RoadockMenuItem(getString(R.string.sync_info)) { showSyncInfo(project) }
+            items += RoadockMenuItem(getString(R.string.delete_project)) {
+                MaterialAlertDialogBuilder(this).setTitle(R.string.delete_project)
+                    .setMessage(getString(R.string.delete_project_message, project.name))
+                    .setNegativeButton(R.string.cancel, null).setPositiveButton(R.string.delete) { _, _ ->
+                        store.deleteProject(project.id)
+                        RefreshJobService.schedulePeriodic(this)
+                        RoadockWidget.updateAll(this)
+                        showPage()
+                    }.show().getButton(android.content.DialogInterface.BUTTON_POSITIVE).setTextColor(RoadockDesign.error)
             }
-            setOnMenuItemClickListener {
-                when (it.itemId) {
-                    6 -> project?.let { refresh(it.id) }
-                    1 -> projectDialog(project)
-                    2 -> project?.let { value ->
-                        val cache = store.cache(value.id)
-                        val fetched = cache.fetchedAt
-                        val date = if (fetched == 0L) getString(R.string.not_fetched) else DateFormat.getDateTimeInstance(
-                            DateFormat.SHORT, DateFormat.SHORT, resources.configuration.locales[0]).format(Date(fetched))
-                        MaterialAlertDialogBuilder(this@MainActivity).setTitle(R.string.sync_info)
-                            .setMessage("${value.owner}/${value.repository}\n${value.branch}\n${value.path}\n\n$date" +
-                                (cache.error?.let { "\n\n$it" } ?: ""))
-                            .setPositiveButton(R.string.close, null).show()
-                    }
-                    3 -> project?.let { value ->
-                        MaterialAlertDialogBuilder(this@MainActivity).setTitle(R.string.delete_project)
-                            .setMessage(getString(R.string.delete_project_message, value.name))
-                            .setNegativeButton(R.string.cancel, null).setPositiveButton(R.string.delete) { _, _ ->
-                                store.deleteProject(value.id)
-                                RefreshJobService.schedulePeriodic(this@MainActivity)
-                                RoadockWidget.updateAll(this@MainActivity)
-                                showPage()
-                            }.show()
-                    }
-                    4 -> projectDialog()
-                }
-                true
-            }
-            show()
         }
+        RoadockMenu.show(this, anchor, items, Gravity.END)
+    }
+
+    private fun showSyncInfo(project: Project) {
+        val cache = store.cache(project.id)
+        val date = if (cache.fetchedAt == 0L) getString(R.string.not_fetched) else DateFormat.getDateTimeInstance(
+            DateFormat.SHORT, DateFormat.SHORT, resources.configuration.locales[0]).format(Date(cache.fetchedAt))
+        val content = column().apply { setPadding(dp(24), dp(8), dp(24), dp(8)) }
+        fun detail(label: Int, value: String) {
+            content.addView(RoadockDesign.text(this, getString(label), 12, RoadockDesign.secondary))
+            content.addView(RoadockDesign.text(this, value, 16).apply { setTextIsSelectable(true) },
+                LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(4); bottomMargin = dp(16) })
+        }
+        detail(R.string.repository_label, "${project.owner}/${project.repository}")
+        detail(R.string.branch_label, project.branch)
+        detail(R.string.path_label, project.path)
+        detail(R.string.last_refreshed, date)
+        cache.error?.let { content.addView(RoadockDesign.text(this, it, 14, RoadockDesign.error)) }
+        MaterialAlertDialogBuilder(this).setTitle(R.string.sync_info)
+            .setView(ScrollView(this).apply { addView(content) })
+            .setPositiveButton(R.string.close, null).show()
     }
 
     private fun showTask(text: String) {
@@ -375,10 +363,11 @@ class MainActivity : AppCompatActivity() {
             form.addView(container, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(12) })
             return edit
         }
-        val name = field(R.string.project_name, project?.name.orEmpty(), "project-name", R.string.name_example)
         val repository = field(R.string.repository_label, project?.let { "${it.owner}/${it.repository}" }.orEmpty(), "project-repository", R.string.repository_example)
         val branch = field(R.string.branch_label, project?.branch ?: "main", "project-branch", R.string.branch_example)
         val path = field(R.string.path_label, project?.path ?: "TODO.md", "project-path", R.string.path_example)
+        val name = field(R.string.project_name, project?.name.orEmpty(), "project-name", R.string.name_example)
+        (name.parent.parent as TextInputLayout).let { (it.layoutParams as LinearLayout.LayoutParams).topMargin = dp(24) }
         val hasToken = project != null && store.hasToken(project.id)
         val token = field(R.string.token_label, "", "project-token", R.string.token_example)
         token.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
