@@ -2,12 +2,12 @@
 
 ## Human
 
-- [ ] 실기기 위젯 전환·2열 스크롤 확인 <!-- roadock:widget-device -->
-- [ ] 실기기 개인 할 일 조작 확인 <!-- roadock:personal-device -->
-- [ ] 실기기 표시 설정·모달 확인 <!-- roadock:appearance-device -->
+- [x] 실기기 위젯 전환·2열 스크롤 확인 <!-- roadock:widget-device -->
+- [x] 실기기 개인 할 일 조작 확인 <!-- roadock:personal-device -->
+- [x] 실기기 표시 설정·모달 확인 <!-- roadock:appearance-device -->
 - [ ] 원격 변경의 위젯 반영 확인 <!-- roadock:remote-widget -->
 - [ ] 실기기 오프라인 데이터 유지 확인 <!-- roadock:offline-device -->
-- [ ] 실기기 비공개 저장소 인증 확인 <!-- roadock:private-repo -->
+- [x] 실기기 비공개 저장소 인증 확인 <!-- roadock:private-repo -->
 - [ ] Human 체크 원격 저장 확인 <!-- roadock:human-sync -->
 - [x] 승인 후 GitHub Releases 배포 <!-- roadock:release-approval -->
 
