@@ -35,7 +35,9 @@ class TaskComposer : BottomSheetDialogFragment() {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(24), dp(24), dp(24), dp(24))
         }
-        root.addView(RoadockDesign.text(context, getString(R.string.add_task), 20, weight = 600))
+        root.addView(RoadockDesign.text(context, getString(R.string.add_task), 22, weight = 600).apply {
+            ViewCompat.setAccessibilityHeading(this, true)
+        })
         val field = TextInputLayout(context).apply {
             hint = getString(R.string.task_label)
             isExpandedHintEnabled = false

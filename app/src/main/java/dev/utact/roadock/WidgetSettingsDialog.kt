@@ -21,8 +21,11 @@ object WidgetSettingsDialog {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(24), dp(8), dp(24), dp(8))
         }
-        content.addView(RoadockDesign.text(context, context.getString(R.string.widget_project_layout)),
-            LinearLayout.LayoutParams(-1, dp(40)))
+        content.addView(RoadockDesign.text(context, context.getString(R.string.widget_project_layout), 14,
+            RoadockDesign.secondary, 500).apply {
+            tag = "widget-layout-label"
+            gravity = Gravity.CENTER_VERTICAL
+        }, LinearLayout.LayoutParams(-1, dp(24)))
         content.addView(MaterialButtonToggleGroup(context).apply {
             tag = "widget-project-layout"
             isSingleSelection = true
@@ -51,20 +54,20 @@ object WidgetSettingsDialog {
                     RoadockWidget.updateAll(context)
                 }
             }
-        }, LinearLayout.LayoutParams(-1, dp(48)).apply { bottomMargin = dp(16) })
+        }, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(8); bottomMargin = dp(24) })
         fun control(label: Int, tagValue: String, initial: Int, from: Int, to: Int, step: Int,
             format: (Int) -> String = { it.toString() }, save: (Int) -> Unit) {
-            val value = RoadockDesign.text(context, format(initial), 14, RoadockDesign.secondary).apply {
+            val value = RoadockDesign.text(context, format(initial), 14).apply {
                 tag = "$tagValue-value"
                 gravity = Gravity.END or Gravity.CENTER_VERTICAL
             }
             content.addView(LinearLayout(context).apply {
                 gravity = Gravity.CENTER_VERTICAL
-                addView(RoadockDesign.text(context, context.getString(label)).apply {
+                addView(RoadockDesign.text(context, context.getString(label), 14, RoadockDesign.secondary, 500).apply {
                     gravity = Gravity.CENTER_VERTICAL
-                }, LinearLayout.LayoutParams(0, dp(40), 1f))
-                addView(value, LinearLayout.LayoutParams(dp(48), dp(40)))
-            }, LinearLayout.LayoutParams(-1, dp(40)))
+                }, LinearLayout.LayoutParams(0, dp(24), 1f))
+                addView(value, LinearLayout.LayoutParams(dp(48), dp(24)))
+            }, LinearLayout.LayoutParams(-1, dp(24)))
             content.addView(Slider(context).apply {
                 tag = tagValue
                 valueFrom = from.toFloat()
@@ -78,13 +81,13 @@ object WidgetSettingsDialog {
                     value.text = format(selected.toInt())
                     RoadockWidget.updateAll(context)
                 }
-            }, LinearLayout.LayoutParams(-1, dp(48)))
+            }, LinearLayout.LayoutParams(-1, dp(48)).apply { bottomMargin = dp(16) })
         }
         control(R.string.widget_text_size, "widget-text-size", store.widgetTextSize(), 10, 16, 1, save = store::setWidgetTextSize)
         control(R.string.widget_transparency, "widget-transparency", store.widgetTransparency(), 0, 100, 5,
             format = { "$it%" }, save = store::setWidgetTransparency)
         content.addView(View(context).apply { setBackgroundColor(RoadockDesign.divider) },
-            LinearLayout.LayoutParams(-1, dp(1)).apply { topMargin = dp(24); bottomMargin = dp(8) })
+            LinearLayout.LayoutParams(-1, dp(1)).apply { topMargin = dp(8); bottomMargin = dp(8) })
         @Suppress("DEPRECATION")
         val version = context.packageManager.getPackageInfo(context.packageName, 0).versionName.orEmpty()
         content.addView(LinearLayout(context).apply {

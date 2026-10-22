@@ -1,6 +1,7 @@
 package dev.utact.roadock
 
 import android.content.Context
+import android.graphics.drawable.RotateDrawable
 import android.text.TextUtils
 import android.util.TypedValue
 import android.view.Gravity
@@ -24,7 +25,10 @@ class ChecklistHeader(context: Context) : LinearLayout(context) {
         ViewCompat.setAccessibilityDelegate(this, object : AccessibilityDelegateCompat() {
             override fun onInitializeAccessibilityNodeInfo(host: View, info: AccessibilityNodeInfoCompat) {
                 super.onInitializeAccessibilityNodeInfo(host, info)
-                if (host.isClickable) info.className = "android.widget.Button"
+                if (host.isClickable) {
+                    info.className = "android.widget.Button"
+                    info.setCanOpenPopup(true)
+                }
             }
         })
     }
@@ -60,6 +64,13 @@ class ChecklistHeader(context: Context) : LinearLayout(context) {
         action.setOnClickListener(click)
     }
 
+    fun setProjectMenuExpanded(expanded: Boolean) {
+        title.isActivated = title.isClickable && expanded
+        title.compoundDrawablesRelative[2]?.level = if (title.isActivated) 10000 else 0
+        ViewCompat.setStateDescription(title, if (title.isClickable)
+            context.getString(if (title.isActivated) R.string.menu_expanded else R.string.menu_collapsed) else null)
+    }
+
     fun bind(name: String, detail: String, completed: Int, total: Int, project: Boolean,
         loading: Boolean, error: String?, select: (View) -> Unit, saving: Boolean = false) {
         title.text = name
@@ -67,12 +78,21 @@ class ChecklistHeader(context: Context) : LinearLayout(context) {
         title.setOnClickListener(if (project) View.OnClickListener { select(it) } else null)
         title.isClickable = project
         title.isFocusable = project
-        val chevron = if (project) AppCompatResources.getDrawable(context, R.drawable.ic_expand)?.apply {
+        val chevron = if (project) RotateDrawable().apply {
+            drawable = AppCompatResources.getDrawable(context, R.drawable.ic_expand)?.mutate()?.apply {
+                setTint(RoadockDesign.secondary)
+            }
+            fromDegrees = 0f
+            toDegrees = 180f
+            pivotX = 0.5f
+            pivotY = 0.5f
+            isPivotXRelative = true
+            isPivotYRelative = true
             val size = RoadockDesign.dp(context, 16)
             setBounds(0, 0, size, size)
-            setTint(RoadockDesign.secondary)
         } else null
         title.setCompoundDrawablesRelative(null, null, chevron, null)
+        setProjectMenuExpanded(title.isActivated)
         if (project) title.contentDescription = context.getString(R.string.switch_project, title.contentDescription)
         val background = TypedValue()
         title.background = if (project && context.theme.resolveAttribute(android.R.attr.selectableItemBackground, background, true))

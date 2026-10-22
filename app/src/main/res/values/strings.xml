@@ -39,6 +39,8 @@
     <string name="widget_sample_agent" translatable="false">Sync checklists</string>
     <string name="last_refreshed">Last refreshed</string>
     <string name="switch_project">%1$s, switch project</string>
+    <string name="menu_expanded">Expanded</string>
+    <string name="menu_collapsed">Collapsed</string>
     <string name="completion_count">%1$d/%2$d completed</string>
     <string name="empty_count">0 tasks</string>
     <string name="title_progress">%1$s, %2$d/%3$d completed</string>

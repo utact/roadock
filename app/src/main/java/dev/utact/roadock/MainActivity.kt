@@ -15,10 +15,12 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.ListPopupWindow
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.core.widget.TextViewCompat
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.google.android.material.button.MaterialButton
@@ -43,6 +45,7 @@ class MainActivity : AppCompatActivity() {
     private var renderedPage: String? = null
     private lateinit var adapter: ChecklistAdapter
     private lateinit var header: ChecklistHeader
+    private var projectMenu: ListPopupWindow? = null
     private lateinit var swipeRefresh: SwipeRefreshLayout
     private lateinit var empty: TextView
     private lateinit var emptyState: LinearLayout
@@ -91,6 +94,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() { super.onResume(); showPage() }
 
     override fun onStop() {
+        projectMenu?.dismiss()
         getSharedPreferences("roadock", MODE_PRIVATE).unregisterOnSharedPreferenceChangeListener(changes)
         super.onStop()
     }
@@ -103,6 +107,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        projectMenu?.dismiss()
         setIntent(intent)
         readPageIntent(intent)
         showPage()
@@ -242,6 +247,7 @@ class MainActivity : AppCompatActivity() {
         tabs.getTabAt(if (personal) 1 else 0)?.select()
         bindingTabs = false
         val project = currentProject()
+        if (project == null) projectMenu?.dismiss()
         val cache = project?.let { store.cache(it.id) } ?: ChecklistCache()
         val loading = project != null && project.id in refreshing
         val pending = project?.let { RefreshQueue.pending(it.id) }
@@ -310,14 +316,23 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun chooseProject(anchor: View) {
-        RoadockMenu.show(this, anchor, store.projects().map { project ->
+        if (projectMenu?.isShowing == true) {
+            projectMenu?.dismiss()
+            return
+        }
+        projectMenu = RoadockMenu.show(this, anchor, store.projects().map { project ->
             RoadockMenuItem(project.name, checked = project.id == selected) {
                 selected = project.id
                 store.selectPage(selected)
                 showPage()
                 list.scrollToPosition(0)
             }
-        } + RoadockMenuItem(getString(R.string.add_project), separated = true) { projectDialog() })
+        } + RoadockMenuItem(getString(R.string.add_project), separated = true) { projectDialog() },
+            onDismiss = {
+                projectMenu = null
+                header.setProjectMenuExpanded(false)
+            })
+        header.setProjectMenuExpanded(projectMenu?.isShowing == true)
     }
 
     private fun showProjectActions(anchor: View) {
@@ -350,7 +365,7 @@ class MainActivity : AppCompatActivity() {
                 TaskOwner.AGENT -> R.string.agent
                 null -> R.string.task_label
             }), 12, RoadockDesign.secondary, 500).apply { tag = "task-owner" }, LinearLayout.LayoutParams(-1, -2))
-            addView(RoadockDesign.text(this@MainActivity, item.text, 18, weight = 500).apply {
+            addView(RoadockDesign.text(this@MainActivity, item.text, 20, weight = 500).apply {
                 tag = "task-full-text"
                 setTextIsSelectable(true)
                 ViewCompat.setAccessibilityHeading(this, true)
@@ -379,7 +394,9 @@ class MainActivity : AppCompatActivity() {
                     setTextIsSelectable(true)
                     movementMethod = LinkMovementMethod.getInstance()
                     setLinkTextColor(RoadockDesign.text)
-                }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(12) })
+                    TextViewCompat.setLineHeight(this, dp(22))
+                    textAlignment = View.TEXT_ALIGNMENT_VIEW_START
+                }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(16) })
             }
         }
         ViewCompat.setAccessibilityPaneTitle(content, item.text)

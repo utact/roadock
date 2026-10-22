@@ -16,12 +16,13 @@ data class RoadockMenuItem(val label: String, val enabled: Boolean = true, val c
 }
 
 object RoadockMenu {
-    fun show(context: Context, anchor: View, items: List<RoadockMenuItem>, gravity: Int = Gravity.START) {
+    fun show(context: Context, anchor: View, items: List<RoadockMenuItem>, gravity: Int = Gravity.START,
+        onDismiss: () -> Unit = {}): ListPopupWindow {
         fun dp(value: Int) = RoadockDesign.dp(context, value)
         val selection = items.any { it.checked }
         val paint = RoadockDesign.text(context, "", 16).paint
         val width = kotlin.math.ceil((items.maxOfOrNull { paint.measureText(it.label) } ?: 0f).toDouble()).toInt() + dp(if (selection) 60 else 32)
-        ListPopupWindow(context).apply {
+        return ListPopupWindow(context).apply {
             anchorView = anchor
             setDropDownGravity(gravity)
             isModal = true
@@ -64,6 +65,7 @@ object RoadockMenu {
                 }
             })
             setOnItemClickListener { _, _, position, _ -> dismiss(); items[position].action() }
+            setOnDismissListener { onDismiss() }
             show()
         }
     }

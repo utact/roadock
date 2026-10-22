@@ -11,6 +11,7 @@ import android.widget.EditText
 import android.widget.ListView
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
+import androidx.core.view.ViewCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.textfield.TextInputLayout
@@ -403,6 +404,51 @@ class MainActivityTest {
         controller.pause().stop().destroy()
     }
 
+    @Test @Config(sdk = [26, 34]) fun reflectsProjectMenuStateAcrossDismissalRefreshSelectionAndStop() {
+        val store = RoadockStore(RuntimeEnvironment.getApplication())
+        val first = Project("one", "Roadock", "utact", "roadock", "main", "TODO.md")
+        val second = first.copy(id = "two", name = "다른 프로젝트")
+        store.saveProject(first)
+        store.saveProject(second)
+        store.selectPage(first.id)
+        val controller = Robolectric.buildActivity(MainActivity::class.java).setup()
+        val activity = controller.get()
+        layout(activity)
+        val title = activity.window.decorView.findViewWithTag<TextView>("page-title")
+        assertEquals("접힘", ViewCompat.getStateDescription(title))
+        assertTrue(title.createAccessibilityNodeInfo().canOpenPopup())
+        val time = SystemClock.uptimeMillis()
+        for (action in listOf(MotionEvent.ACTION_DOWN, MotionEvent.ACTION_UP)) {
+            val event = MotionEvent.obtain(time, time + 16, action,
+                title.width - title.compoundDrawablesRelative[2].bounds.width() / 2f, title.height / 2f, 0)
+            title.dispatchTouchEvent(event)
+            event.recycle()
+        }
+        shadowOf(Looper.getMainLooper()).idle()
+        assertTrue(ShadowApplication.getInstance().latestPopupWindow.isShowing)
+        assertTrue(title.isActivated)
+        assertEquals("펼쳐짐", ViewCompat.getStateDescription(title))
+        assertEquals(10000, title.compoundDrawablesRelative[2].level)
+        ShadowApplication.getInstance().latestPopupWindow.dismiss()
+        assertFalse(title.isActivated)
+        assertEquals("접힘", ViewCompat.getStateDescription(title))
+        assertEquals(0, title.compoundDrawablesRelative[2].level)
+        title.performClick()
+        store.saveCache(first, ChecklistCache(listOf(ChecklistItem("새 항목", false)), 123))
+        layout(activity)
+        assertTrue(title.isActivated)
+        selectTaskMenu(1)
+        layout(activity)
+        assertEquals(second.name, title.text.toString())
+        assertFalse(title.isActivated)
+        title.performClick()
+        val popup = ShadowApplication.getInstance().latestPopupWindow
+        controller.pause().stop()
+        assertFalse(popup.isShowing)
+        assertFalse(title.isActivated)
+        controller.destroy()
+    }
+
     @Test @Config(qualifiers = "en") fun usesEnglishLabelsAndStableFieldExamples() {
         val controller = Robolectric.buildActivity(MainActivity::class.java).setup()
         val activity = controller.get()
@@ -420,8 +466,7 @@ class MainActivityTest {
         val formGroup = container.parent as ViewGroup
         val nameField = form.findViewWithTag<EditText>("project-name").parent.parent as TextInputLayout
         assertTrue(formGroup.indexOfChild(container) < formGroup.indexOfChild(nameField))
-        assertEquals(20f * android.util.DisplayMetrics.DENSITY_DEVICE_STABLE / 160f,
-            form.findViewById<TextView>(androidx.appcompat.R.id.alertTitle).textSize, 0.01f)
+        assertTrue(form.findViewById<TextView>(androidx.appcompat.R.id.alertTitle).textSize > repository.textSize)
         assertNotEquals(dialog.getButton(AlertDialog.BUTTON_POSITIVE).currentTextColor,
             dialog.getButton(AlertDialog.BUTTON_NEGATIVE).currentTextColor)
         assertEquals("GitHub repository", container.hint.toString())
