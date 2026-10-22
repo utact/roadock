@@ -21,12 +21,15 @@ Download the APK from [Releases](https://github.com/utact/roadock/releases). Req
 
 ## Setup
 
-1. Add the complete [agent template](templates/roadock-agent.md), including its boundary comments, to your project's `AGENTS.md`.
-   Update an existing ROADOCK block in place.
-2. Maintain `TODO.md` under `## Human` and `## Agent`, with stable Human task IDs.
-3. Commit and push the file to GitHub.
+1. Ask your coding agent to apply the [template](templates/roadock-agent.md).
+2. Have it prepare `TODO.md` with Human / Agent tasks.
+3. Commit and push `TODO.md` to GitHub.
 4. Register its repository, branch, and path in the app.
 5. For Human completion sync, add a token with **Contents: read and write** under **Edit project**.
+
+Merge the full marked block into `AGENTS.md`.
+Keep existing project rules and tasks when applying or updating it.
+Template revisions increment with each template change, independently of app releases.
 
 Use `Requires: task-id` below an Agent task to reference a Human task's stable ID.
 Roadock shows a waiting label until that Human task is complete. See the [template](templates/roadock-agent.md) for an example.
@@ -34,9 +37,6 @@ Roadock shows a waiting label until that Human task is complete. See the [templa
 Write access is required even for public repositories. Tokens are encrypted on the device.
 
 Human updates create GitHub commits. Pull before PC edits.
-
-Template revisions identify copied instructions and increment whenever the template changes, independently of app releases.
-To update, compare the marked ROADOCK block with its linked source and merge changes while preserving project-specific rules and checklist contents.
 
 ## Build
 
