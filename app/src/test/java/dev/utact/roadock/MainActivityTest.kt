@@ -468,6 +468,12 @@ class MainActivityTest {
         val widgetRow = widgetList.adapter.getView(0, null, widgetList)
         assertEquals(14f * android.util.DisplayMetrics.DENSITY_DEVICE_STABLE / 160f,
             widgetRow.findViewById<TextView>(R.id.widget_row_text).textSize, 0.01f)
+        content.findViewWithTag<Slider>("widget-transparency").value = 50f
+        assertEquals(50, RoadockStore(activity).widgetTransparency())
+        assertEquals("50%", content.findViewWithTag<TextView>("widget-transparency-value").text.toString())
+        assertEquals(127, content.findViewById<android.widget.ImageView>(R.id.widget_background).imageAlpha)
+        assertEquals(127, widgets.getViewFor(widgetId).findViewById<android.widget.ImageView>(R.id.widget_background).imageAlpha)
+        assertEquals(1f, widgets.getViewFor(widgetId).findViewById<View>(R.id.widget_title).alpha, 0.001f)
         content.findViewWithTag<View>("font-license").performClick()
         val license = ShadowDialog.getLatestDialog() as AlertDialog
         assertNotNull(license.window!!.decorView.findViewWithTag<View>("font-license-text"))
@@ -484,6 +490,45 @@ class MainActivityTest {
         val projectSettings = ShadowDialog.getLatestDialog() as AlertDialog
         assertEquals(14f, projectSettings.window!!.decorView.findViewWithTag<Slider>("widget-text-size").value)
         projectSettings.dismiss()
+        controller.pause().stop().destroy()
+    }
+
+    @Test @Config(sdk = [28]) fun reflowsUnchangedLicenseTextAndSharesDialogPanelInsets() {
+        val controller = Robolectric.buildActivity(MainActivity::class.java).setup()
+        val activity = controller.get()
+        fun verifyPanels(dialog: AlertDialog) {
+            val root = dialog.window!!.decorView
+            root.measure(View.MeasureSpec.makeMeasureSpec(393, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(852, View.MeasureSpec.AT_MOST))
+            root.layout(0, 0, 393, root.measuredHeight)
+            val title = root.findViewById<View>(androidx.appcompat.R.id.title_template)
+            val top = root.findViewById<View>(androidx.appcompat.R.id.topPanel)
+            val bottom = root.findViewById<View>(androidx.appcompat.R.id.buttonPanel)
+            val actions = dialog.getButton(AlertDialog.BUTTON_POSITIVE).parent as View
+            assertEquals(top.width, bottom.width)
+            assertEquals(RoadockDesign.dp(activity, 24), title.paddingStart)
+            assertEquals(title.paddingStart, title.paddingEnd)
+            assertEquals(title.paddingStart, actions.paddingStart)
+            assertEquals(title.paddingEnd, actions.paddingEnd)
+            assertEquals(RoadockDesign.dp(activity, 8), title.paddingBottom)
+        }
+        AppSettingsDialog.show(activity)
+        val settings = ShadowDialog.getLatestDialog() as AlertDialog
+        verifyPanels(settings)
+        settings.dismiss()
+        LicenseDialog.show(activity)
+        val license = ShadowDialog.getLatestDialog() as AlertDialog
+        verifyPanels(license)
+        val content = license.window!!.decorView.findViewWithTag<TextView>("font-license-text")
+        val original = activity.resources.openRawResource(R.raw.pretendard_license).bufferedReader().use { it.readText() }
+        fun words(text: String) = text.replace(Regex("(?m)^-{3,}\\r?$"), "").trim().replace(Regex("\\s+"), " ")
+        assertEquals(words(original), words(content.text.toString()))
+        assertTrue(content.text.contains("\n\nPREAMBLE\n\n"))
+        assertTrue(content.text.contains("\n\nDISCLAIMER\n\n"))
+        assertFalse(content.text.contains("worldwide\ndevelopment"))
+        assertEquals(android.text.Layout.JUSTIFICATION_MODE_INTER_WORD, content.justificationMode)
+        assertTrue(content.isTextSelectable)
+        license.dismiss()
         controller.pause().stop().destroy()
     }
 

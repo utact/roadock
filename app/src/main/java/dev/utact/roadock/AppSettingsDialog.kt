@@ -2,10 +2,12 @@ package dev.utact.roadock
 
 import android.content.Context
 import android.graphics.Paint
+import android.graphics.drawable.GradientDrawable
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.widget.LinearLayout
+import android.widget.FrameLayout
 import android.widget.ScrollView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.slider.LabelFormatter
@@ -19,52 +21,55 @@ object AppSettingsDialog {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(24), dp(8), dp(24), dp(8))
         }
-        content.addView(RoadockDesign.text(context, context.getString(R.string.widget), 12, RoadockDesign.secondary))
-        val sizeValue = RoadockDesign.text(context, store.widgetTextSize().toString(), 14, RoadockDesign.secondary).apply {
-            tag = "widget-text-size-value"
-            gravity = Gravity.END or Gravity.CENTER_VERTICAL
-        }
-        content.addView(LinearLayout(context).apply {
-            gravity = Gravity.CENTER_VERTICAL
-            addView(RoadockDesign.text(context, context.getString(R.string.text_size)).apply {
-                gravity = Gravity.CENTER_VERTICAL
-            }, LinearLayout.LayoutParams(0, dp(40), 1f))
-            addView(sizeValue, LinearLayout.LayoutParams(dp(40), dp(40)))
-        }, LinearLayout.LayoutParams(-1, dp(40)))
-        val preview = LinearLayout(context).apply {
-            tag = "widget-text-preview"
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(16), dp(8), dp(16), dp(8))
-            setBackgroundResource(R.drawable.widget_background)
+        val preview = FrameLayout(context).apply {
+            tag = "widget-preview"
+            background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
+                intArrayOf(0xFF526675.toInt(), 0xFF242A30.toInt(), 0xFF716456.toInt())).apply { cornerRadius = dp(24).toFloat() }
+            clipToOutline = true
             importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
         }
         fun renderPreview() {
-            preview.removeAllViews()
-            listOf(
-                ChecklistItem(context.getString(R.string.widget_sample_short), false),
-                ChecklistItem(context.getString(R.string.widget_sample_done), true),
-                ChecklistItem(context.getString(R.string.widget_sample_long), false),
-            ).forEach { preview.addView(RoadockWidget.rowView(context, it).apply(context.applicationContext, preview)) }
+            val views = RoadockWidget.previewViews(context)
+            if (preview.childCount == 0) preview.addView(views.apply(context.applicationContext, preview))
+            else views.reapply(context.applicationContext, preview.getChildAt(0))
+            preview.findViewById<View>(R.id.widget_preview_rows).tag = "widget-text-preview"
         }
         renderPreview()
-        content.addView(Slider(context).apply {
-            tag = "widget-text-size"
-            valueFrom = 10f
-            valueTo = 16f
-            stepSize = 1f
-            this.value = store.widgetTextSize().toFloat()
-            labelBehavior = LabelFormatter.LABEL_GONE
-            contentDescription = context.getString(R.string.widget_text_size)
-            addOnChangeListener { _, size, _ ->
-                store.setWidgetTextSize(size.toInt())
-                sizeValue.text = size.toInt().toString()
-                renderPreview()
-                RoadockWidget.updateAll(context)
-            }
-        }, LinearLayout.LayoutParams(-1, dp(48)))
         content.addView(RoadockDesign.text(context, context.getString(R.string.preview), 12, RoadockDesign.secondary),
-            LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(16); bottomMargin = dp(8) })
-        content.addView(preview, LinearLayout.LayoutParams(-1, -2))
+            LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(8) })
+        content.addView(preview, LinearLayout.LayoutParams(-1, dp(156)).apply { bottomMargin = dp(16) })
+        fun control(label: Int, tagValue: String, initial: Int, from: Int, to: Int, step: Int,
+            format: (Int) -> String = { it.toString() }, save: (Int) -> Unit) {
+            val value = RoadockDesign.text(context, format(initial), 14, RoadockDesign.secondary).apply {
+                tag = "$tagValue-value"
+                gravity = Gravity.END or Gravity.CENTER_VERTICAL
+            }
+            content.addView(LinearLayout(context).apply {
+                gravity = Gravity.CENTER_VERTICAL
+                addView(RoadockDesign.text(context, context.getString(label)).apply {
+                    gravity = Gravity.CENTER_VERTICAL
+                }, LinearLayout.LayoutParams(0, dp(40), 1f))
+                addView(value, LinearLayout.LayoutParams(dp(48), dp(40)))
+            }, LinearLayout.LayoutParams(-1, dp(40)))
+            content.addView(Slider(context).apply {
+                tag = tagValue
+                valueFrom = from.toFloat()
+                valueTo = to.toFloat()
+                stepSize = step.toFloat()
+                this.value = initial.toFloat()
+                labelBehavior = LabelFormatter.LABEL_GONE
+                contentDescription = context.getString(label)
+                addOnChangeListener { _, selected, _ ->
+                    save(selected.toInt())
+                    value.text = format(selected.toInt())
+                    renderPreview()
+                    RoadockWidget.updateAll(context)
+                }
+            }, LinearLayout.LayoutParams(-1, dp(48)))
+        }
+        control(R.string.widget_text_size, "widget-text-size", store.widgetTextSize(), 10, 16, 1, save = store::setWidgetTextSize)
+        control(R.string.widget_transparency, "widget-transparency", store.widgetTransparency(), 0, 100, 5,
+            format = { "$it%" }, save = store::setWidgetTransparency)
         content.addView(View(context).apply { setBackgroundColor(RoadockDesign.divider) },
             LinearLayout.LayoutParams(-1, dp(1)).apply { topMargin = dp(24); bottomMargin = dp(8) })
         @Suppress("DEPRECATION")

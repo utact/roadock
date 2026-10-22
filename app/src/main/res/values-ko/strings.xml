@@ -1,5 +1,5 @@
 <resources>
-    <string name="widget_description">프로젝트 체크리스트와 개인 할 일</string>
+    <string name="widget_description">체크리스트</string>
     <string name="previous_project">이전 체크리스트</string>
     <string name="next_project">다음 체크리스트</string>
     <string name="open_app">앱에서 열기</string>
@@ -23,9 +23,8 @@
     <string name="settings">설정</string>
     <string name="project_actions">프로젝트 메뉴</string>
     <string name="view_full_text">전체 내용 보기</string>
-    <string name="widget">위젯</string>
-    <string name="text_size">글자 크기</string>
     <string name="widget_text_size">위젯 글자 크기</string>
+    <string name="widget_transparency">배경 투명도</string>
     <string name="preview">미리보기</string>
     <string name="widget_sample_short">API 키 발급</string>
     <string name="widget_sample_done">위젯 전환 확인</string>

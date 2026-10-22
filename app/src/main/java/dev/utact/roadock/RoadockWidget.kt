@@ -6,12 +6,8 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.graphics.Color
 import android.graphics.Bitmap
 import android.graphics.Canvas
-import android.graphics.Paint
-import android.graphics.Path
-import android.graphics.RectF
 import android.net.Uri
 import android.os.Build
 import android.util.DisplayMetrics
@@ -51,27 +47,18 @@ class RoadockWidget : AppWidgetProvider() {
         const val PREVIOUS = "dev.utact.roadock.PREVIOUS"
         const val NEXT = "dev.utact.roadock.NEXT"
         const val MAX_ROWS = 100
-        private val checkboxes = mutableMapOf<Boolean, Bitmap>()
+        private val checkboxes = mutableMapOf<Pair<Boolean, Int>, Bitmap>()
         private fun pixels(value: Int) = value * DisplayMetrics.DENSITY_DEVICE_STABLE / 160f
 
-        private fun checkbox(checked: Boolean): Bitmap = synchronized(checkboxes) {
-            checkboxes.getOrPut(checked) {
-                Bitmap.createBitmap(pixels(16).toInt(), pixels(16).toInt(), Bitmap.Config.ARGB_8888).apply {
+        private fun checkbox(context: Context, checked: Boolean, textSize: Int): Bitmap = synchronized(checkboxes) {
+            checkboxes.getOrPut(checked to textSize) {
+                val size = (pixels(textSize) * 4f / 3f).toInt()
+                Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888).apply {
                     density = Bitmap.DENSITY_NONE
                     val canvas = Canvas(this)
-                    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                        color = if (checked) 0xFF808080.toInt() else 0xFFB8B8B8.toInt()
-                        style = if (checked) Paint.Style.FILL else Paint.Style.STROKE
-                        strokeWidth = pixels(1)
-                    }
-                    canvas.drawRoundRect(RectF(pixels(1), pixels(1), pixels(15), pixels(15)), pixels(2), pixels(2), paint)
-                    if (checked) {
-                        paint.color = Color.WHITE
-                        paint.style = Paint.Style.STROKE
-                        paint.strokeWidth = pixels(2)
-                        paint.strokeCap = Paint.Cap.ROUND
-                        paint.strokeJoin = Paint.Join.ROUND
-                        canvas.drawPath(Path().apply { moveTo(pixels(4), pixels(8)); lineTo(pixels(7), pixels(11)); lineTo(pixels(12), pixels(5)) }, paint)
+                    context.getDrawable(if (checked) R.drawable.widget_check_done else R.drawable.widget_check_empty)!!.mutate().apply {
+                        setBounds(0, 0, size, size)
+                        draw(canvas)
                     }
                 }
             }
@@ -113,10 +100,34 @@ class RoadockWidget : AppWidgetProvider() {
                 setTextViewTextSize(R.id.widget_row_text, TypedValue.COMPLEX_UNIT_PX, pixels(RoadockStore(context).widgetTextSize()))
                 setInt(R.id.widget_row_text, "setHeight", pixels(28).toInt())
                 setTextColor(R.id.widget_row_text, if (item.checked) 0xFF909090.toInt() else 0xFFC8C8C8.toInt())
-                setImageViewBitmap(R.id.widget_check, checkbox(item.checked))
+                setImageViewBitmap(R.id.widget_check, checkbox(context, item.checked, RoadockStore(context).widgetTextSize()))
                 setViewPadding(R.id.widget_row, pixels(item.depth.coerceIn(0, 4) * 8).toInt(), 0, 0, 0)
                 setViewPadding(R.id.widget_row_text, pixels(10).toInt(), 0, 0, 0)
             }
+
+        fun previewViews(context: Context): RemoteViews = RemoteViews(context.packageName, R.layout.widget_preview).apply {
+            appearance(context, this)
+            setTextViewText(R.id.widget_title, context.getString(R.string.app_name))
+            removeAllViews(R.id.widget_preview_rows)
+            listOf(
+                ChecklistItem(context.getString(R.string.widget_sample_short), false),
+                ChecklistItem(context.getString(R.string.widget_sample_done), true),
+                ChecklistItem(context.getString(R.string.widget_sample_long), false),
+            ).forEach { addView(R.id.widget_preview_rows, rowView(context, it)) }
+        }
+
+        private fun appearance(context: Context, views: RemoteViews) {
+            views.setImageViewResource(R.id.widget_background, R.drawable.widget_surface)
+            views.setInt(R.id.widget_background, "setImageAlpha", ((100 - RoadockStore(context).widgetTransparency()) * 255f / 100).toInt())
+            views.setViewPadding(R.id.widget_content, pixels(16).toInt(), pixels(4).toInt(), pixels(16).toInt(), pixels(12).toInt())
+            views.setTextViewTextSize(R.id.widget_title, TypedValue.COMPLEX_UNIT_PX, pixels(18))
+            views.setInt(R.id.widget_title, "setHeight", pixels(48).toInt())
+            listOf(R.id.widget_previous, R.id.widget_next).forEach {
+                views.setTextViewTextSize(it, TypedValue.COMPLEX_UNIT_PX, pixels(24))
+                views.setInt(it, "setWidth", pixels(48).toInt())
+                views.setInt(it, "setHeight", pixels(48).toInt())
+            }
+        }
 
         fun update(context: Context, widgetId: Int) {
             val manager = AppWidgetManager.getInstance(context)
@@ -136,6 +147,7 @@ class RoadockWidget : AppWidgetProvider() {
             val cache = store.cache(page)
             val allRows = rows(context, page)
             val views = RemoteViews(context.packageName, R.layout.roadock_widget)
+            appearance(context, views)
             val title = project?.name ?: context.getString(R.string.personal_tasks)
             views.setTextViewText(R.id.widget_title, if (cache.error == null) title else context.getString(R.string.refresh_failed_title, title))
             val status = when {
@@ -146,16 +158,8 @@ class RoadockWidget : AppWidgetProvider() {
             views.setTextViewText(R.id.widget_status, status)
             views.setViewVisibility(R.id.widget_status, View.GONE)
             views.setContentDescription(R.id.widget_title, context.getString(R.string.widget_open, title) + if (status.isBlank()) "" else ", $status")
-            views.setTextViewTextSize(R.id.widget_title, TypedValue.COMPLEX_UNIT_PX, pixels(18))
             views.setTextViewTextSize(R.id.widget_status, TypedValue.COMPLEX_UNIT_PX, pixels(12))
             views.setTextViewTextSize(R.id.widget_empty, TypedValue.COMPLEX_UNIT_PX, pixels(13))
-            views.setViewPadding(R.id.widget_root, pixels(16).toInt(), pixels(4).toInt(), pixels(16).toInt(), pixels(12).toInt())
-            views.setInt(R.id.widget_title, "setHeight", pixels(48).toInt())
-            listOf(R.id.widget_previous, R.id.widget_next).forEach {
-                views.setTextViewTextSize(it, TypedValue.COMPLEX_UNIT_PX, pixels(24))
-                views.setInt(it, "setWidth", pixels(48).toInt())
-                views.setInt(it, "setHeight", pixels(48).toInt())
-            }
             views.setTextViewText(R.id.widget_empty, when {
                 page == RoadockStore.PERSONAL -> context.getString(R.string.widget_empty_tasks)
                 cache.fetchedAt == 0L -> context.getString(R.string.refresh_prompt)

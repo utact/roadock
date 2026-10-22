@@ -113,6 +113,8 @@ class RoadockStore(context: Context) {
 
     fun widgetTextSize(): Int = preferences.getInt("widget-text-size", 12).coerceIn(10, 16)
     fun setWidgetTextSize(size: Int) { preferences.edit().putInt("widget-text-size", size.coerceIn(10, 16)).apply() }
+    fun widgetTransparency(): Int = preferences.getInt("widget-transparency", 15).coerceIn(0, 100)
+    fun setWidgetTransparency(value: Int) { preferences.edit().putInt("widget-transparency", value.coerceIn(0, 100)).apply() }
 
     fun pageIds(): List<String> = projects().map { it.id } + PERSONAL
 

@@ -4,7 +4,8 @@
     android:minResizeWidth="320dp" android:minResizeHeight="140dp"
     android:targetCellWidth="5" android:targetCellHeight="3"
     android:initialLayout="@layout/roadock_widget"
-    android:previewLayout="@layout/roadock_widget"
+    android:previewLayout="@layout/widget_preview"
+    android:previewImage="@drawable/widget_preview_image"
     android:description="@string/widget_description"
     android:updatePeriodMillis="1800000"
     android:resizeMode="horizontal|vertical" android:widgetCategory="home_screen" />

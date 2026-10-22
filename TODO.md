@@ -4,6 +4,7 @@
 
 - [ ] 실기기 위젯 전환·스크롤 확인 <!-- roadock:widget-device -->
 - [ ] 실기기 개인 할 일 조작 확인 <!-- roadock:personal-device -->
+- [ ] 실기기 표시 설정·모달 확인 <!-- roadock:appearance-device -->
 - [ ] 원격 변경의 위젯 반영 확인 <!-- roadock:remote-widget -->
 - [ ] 실기기 오프라인 데이터 유지 확인 <!-- roadock:offline-device -->
 - [ ] 실기기 비공개 저장소 인증 확인 <!-- roadock:private-repo -->
@@ -35,6 +36,8 @@
 - [x] 긴 목록 세로 스크롤
 - [x] 새로고침 결과 위젯 반영
 - [x] 실제 행 미리보기·글자 크기 조절
+- [x] 선택 화면 미리보기·설명 정리
+- [x] 배경 투명도·체크박스 비례 조절
 
 ### Personal Checklist
 
@@ -57,6 +60,7 @@
 - [x] 체크박스 아이콘 중앙 정렬
 - [x] 한국어·영어 표시 및 입력 폼 통일
 - [x] 폰트 라이선스 간결한 표시
+- [x] 모달 간격 통일·라이선스 문단 정렬
 - [x] 대상 프로젝트용 지침 템플릿 추가
 
 ### Release
