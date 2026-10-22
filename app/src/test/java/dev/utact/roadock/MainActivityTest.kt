@@ -14,6 +14,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.textfield.TextInputLayout
+import com.google.android.material.slider.Slider
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -22,6 +23,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 import org.robolectric.shadows.ShadowApplication
 import org.robolectric.shadows.ShadowDialog
 
@@ -85,6 +87,7 @@ class MainActivityTest {
         val menu = find<ListView>(ShadowApplication.getInstance().latestPopupWindow.contentView)!!
         assertEquals(1, menu.adapter.count)
         assertEquals("삭제", menu.adapter.getItem(0).toString())
+        assertEquals(RoadockDesign.dp(activity, 112), ShadowApplication.getInstance().latestPopupWindow.width)
         selectTaskMenu(0)
         layout(activity)
         assertTrue(store.tasks().isEmpty())
@@ -254,7 +257,7 @@ class MainActivityTest {
         assertTrue(title.isClickable)
         title.performClick()
         assertEquals(2, find<ListView>(ShadowApplication.getInstance().latestPopupWindow.contentView)!!.adapter.count)
-        assertEquals(View.INVISIBLE, root.findViewWithTag<View>("add-personal-task").visibility)
+        assertNull(root.findViewWithTag<View>("add-personal-task"))
         selectTaskMenu(1)
         layout(activity)
         assertEquals(second.id, store.selectedPage())
@@ -283,9 +286,11 @@ class MainActivityTest {
         layout(activity)
         val root = activity.window.decorView
         assertEquals("Personal tasks", root.findViewWithTag<TextView>("page-title").text.toString())
-        root.findViewWithTag<View>("more").performClick()
+        find<TabLayout>(root)!!.getTabAt(0)!!.select()
+        layout(activity)
+        root.findViewWithTag<View>("project-actions").performClick()
         val menu = find<ListView>(ShadowApplication.getInstance().latestPopupWindow.contentView)!!
-        assertEquals(listOf("Add project", "Font license"), (0 until menu.adapter.count).map { menu.adapter.getItem(it).toString() })
+        assertEquals(listOf("Add project"), (0 until menu.adapter.count).map { menu.adapter.getItem(it).toString() })
         selectTaskMenu(0)
         val dialog = ShadowDialog.getLatestDialog() as AlertDialog
         val form = dialog.window!!.decorView
@@ -294,9 +299,94 @@ class MainActivityTest {
         assertEquals("GitHub repository", container.hint.toString())
         assertEquals("owner/repository", container.placeholderText.toString())
         assertFalse(container.isExpandedHintEnabled)
+        for (tag in listOf("project-name", "project-token")) {
+            val field = form.findViewWithTag<EditText>(tag).parent.parent as TextInputLayout
+            assertNull(field.helperText)
+            assertFalse(field.isHelperTextEnabled)
+        }
         assertEquals("main", form.findViewWithTag<EditText>("project-branch").text.toString())
         assertEquals("TODO.md", form.findViewWithTag<EditText>("project-path").text.toString())
         dialog.dismiss()
+        controller.pause().stop().destroy()
+    }
+
+    @Test fun keepsGlobalSettingsSeparateFromChecklistActionsAcrossTabs() {
+        val store = RoadockStore(RuntimeEnvironment.getApplication())
+        val project = Project("one", "Roadock", "utact", "roadock", "main", "TODO.md")
+        store.saveProject(project)
+        store.selectPage(RoadockStore.PERSONAL)
+        store.addTask("크기 확인")
+        val widgets = shadowOf(android.appwidget.AppWidgetManager.getInstance(RuntimeEnvironment.getApplication()))
+        widgets.setAlwaysRecreateViewsDuringUpdate(true)
+        val widgetId = widgets.createWidget(RoadockWidget::class.java, R.layout.roadock_widget)
+        store.selectWidgetPage(widgetId, RoadockStore.PERSONAL)
+        val controller = Robolectric.buildActivity(MainActivity::class.java).setup()
+        val activity = controller.get()
+        layout(activity)
+        val root = activity.window.decorView
+        val settings = root.findViewWithTag<View>("settings")
+        val position = IntArray(2)
+        settings.getLocationOnScreen(position)
+        settings.performClick()
+        val dialog = ShadowDialog.getLatestDialog() as AlertDialog
+        val content = dialog.window!!.decorView
+        assertNull(content.findViewWithTag<View>("project-name"))
+        content.findViewWithTag<Slider>("widget-text-size").value = 14f
+        assertEquals(14, RoadockStore(activity).widgetTextSize())
+        assertEquals("14", content.findViewWithTag<TextView>("widget-text-size-value").text.toString())
+        val widgetList = widgets.getViewFor(widgetId).findViewById<ListView>(R.id.widget_list)
+        val widgetRow = widgetList.adapter.getView(0, null, widgetList)
+        assertEquals(14f * android.util.DisplayMetrics.DENSITY_DEVICE_STABLE / 160f,
+            widgetRow.findViewById<TextView>(R.id.widget_row_text).textSize, 0.01f)
+        content.findViewWithTag<View>("font-license").performClick()
+        val license = ShadowDialog.getLatestDialog() as AlertDialog
+        assertNotNull(license.window!!.decorView.findViewWithTag<View>("font-license-text"))
+        license.dismiss()
+        dialog.dismiss()
+        find<TabLayout>(root)!!.getTabAt(0)!!.select()
+        layout(activity)
+        val projectPosition = IntArray(2)
+        settings.getLocationOnScreen(projectPosition)
+        assertArrayEquals(position, projectPosition)
+        assertNull(root.findViewWithTag<View>("add-personal-task"))
+        assertNotNull(root.findViewWithTag<View>("project-actions"))
+        settings.performClick()
+        val projectSettings = ShadowDialog.getLatestDialog() as AlertDialog
+        assertEquals(14f, projectSettings.window!!.decorView.findViewWithTag<Slider>("widget-text-size").value)
+        projectSettings.dismiss()
+        controller.pause().stop().destroy()
+    }
+
+    @Test @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun opensUnabridgedProjectAndPersonalTextWithoutTogglingCompletion() {
+        val store = RoadockStore(RuntimeEnvironment.getApplication())
+        val project = Project("one", "Roadock", "utact", "roadock", "main", "TODO.md")
+        val projectText = "프로젝트의 전체 내용 ".repeat(30)
+        val personalText = "가".repeat(24)
+        store.saveProject(project)
+        store.saveCache(project, ChecklistCache(listOf(ChecklistItem(projectText, false)), 1234))
+        store.addTask(personalText)
+        store.selectPage(project.id)
+        val controller = Robolectric.buildActivity(MainActivity::class.java).setup()
+        val activity = controller.get()
+        layout(activity)
+        val root = activity.window.decorView
+        fun read(tag: String, expected: String) {
+            val label = root.findViewWithTag<TextView>(tag)
+            assertTrue(label.layout.getEllipsisCount(0) > 0)
+            label.performClick()
+            val dialog = ShadowDialog.getLatestDialog() as AlertDialog
+            val full = dialog.window!!.decorView.findViewWithTag<TextView>("task-full-text")
+            assertEquals(expected, full.text.toString())
+            assertTrue(full.isTextSelectable)
+            assertNull(full.ellipsize)
+            dialog.dismiss()
+        }
+        read("text-one-0", projectText)
+        find<TabLayout>(root)!!.getTabAt(1)!!.select()
+        layout(activity)
+        read("text-${store.tasks().single().id}", personalText)
+        assertFalse(store.tasks().single().checked)
         controller.pause().stop().destroy()
     }
 

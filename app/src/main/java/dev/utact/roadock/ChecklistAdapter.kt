@@ -9,7 +9,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.ImageView
-import androidx.appcompat.widget.PopupMenu
+import android.widget.ArrayAdapter
+import androidx.appcompat.widget.ListPopupWindow
 import androidx.core.view.ViewCompat
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat.AccessibilityActionCompat
 import androidx.recyclerview.widget.ItemTouchHelper
@@ -22,6 +23,7 @@ class ChecklistAdapter(
     private val toggle: (String) -> Unit,
     private val delete: (String) -> Unit,
     private val reorder: (List<String>) -> Unit,
+    private val open: (ChecklistRow) -> Unit,
 ) : RecyclerView.Adapter<ChecklistAdapter.Holder>() {
     private val rows = mutableListOf<ChecklistRow>()
     private val stableIds = mutableMapOf<String, Long>()
@@ -94,6 +96,10 @@ class ChecklistAdapter(
         holder.check.setOnCheckedChangeListener { _, _ -> if (editable) toggle(item.id) }
         holder.label.text = item.text
         holder.label.setTextColor(if (item.checked) RoadockDesign.secondary else RoadockDesign.text)
+        holder.label.tag = "text-${item.id}"
+        holder.label.setOnClickListener { open(item) }
+        ViewCompat.replaceAccessibilityAction(holder.label, AccessibilityActionCompat.ACTION_CLICK,
+            holder.root.context.getString(R.string.view_full_text)) { _, _ -> open(item); true }
         holder.handle.visibility = if (editable) View.VISIBLE else View.GONE
         holder.handle.contentDescription = holder.root.context.getString(R.string.reorder_task, item.text)
         holder.handle.tag = "reorder-${item.id}"
@@ -111,21 +117,37 @@ class ChecklistAdapter(
         ViewCompat.removeAccessibilityAction(holder.check, AccessibilityActionCompat.ACTION_DISMISS.id)
         if (editable) ViewCompat.replaceAccessibilityAction(holder.check, AccessibilityActionCompat.ACTION_DISMISS,
             holder.root.context.getString(R.string.delete)) { _, _ -> delete(item.id); true }
-        holder.root.setOnClickListener { if (editable) holder.check.performClick() }
+        holder.root.setOnClickListener { open(item) }
         holder.root.setOnLongClickListener {
             if (editable) { showMenu(holder, item); true } else false
         }
-        holder.root.isClickable = editable
+        holder.label.setOnLongClickListener {
+            if (editable) { showMenu(holder, item); true } else false
+        }
+        holder.label.isLongClickable = editable
+        holder.root.isClickable = true
         holder.root.isLongClickable = editable
         holder.root.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
     }
 
     private fun showMenu(holder: Holder, item: ChecklistRow) {
-        PopupMenu(holder.root.context, holder.root, Gravity.END).apply {
-            menu.add(0, 3, 0, R.string.delete)
-            setOnMenuItemClickListener {
+        val context = holder.root.context
+        ListPopupWindow(context).apply {
+            anchorView = holder.root
+            setDropDownGravity(Gravity.END)
+            isModal = true
+            width = RoadockDesign.dp(context, 112)
+            setAdapter(object : ArrayAdapter<String>(context, 0, listOf(context.getString(R.string.delete))) {
+                override fun getView(position: Int, recycled: View?, parent: ViewGroup): View =
+                    RoadockDesign.text(context, getItem(position).orEmpty(), 16, RoadockDesign.error).apply {
+                        gravity = Gravity.CENTER_VERTICAL
+                        minimumHeight = RoadockDesign.dp(context, 48)
+                        setPadding(RoadockDesign.dp(context, 16), 0, RoadockDesign.dp(context, 16), 0)
+                    }
+            })
+            setOnItemClickListener { _, _, _, _ ->
+                dismiss()
                 delete(item.id)
-                true
             }
             show()
         }
@@ -166,7 +188,7 @@ class ChecklistAdapter(
             )
             check.setCenterIfNoTextEnabled(true)
             root.addView(check, LinearLayout.LayoutParams(RoadockDesign.dp(context, 48), RoadockDesign.dp(context, 48)))
-            label.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+            label.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
             label.setSingleLine()
             label.ellipsize = android.text.TextUtils.TruncateAt.END
             label.setPadding(0, RoadockDesign.dp(context, 8), RoadockDesign.dp(context, 8), RoadockDesign.dp(context, 8))

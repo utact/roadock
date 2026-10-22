@@ -78,8 +78,9 @@ class RoadockWidget : AppWidgetProvider() {
         }
 
         fun updateAll(context: Context) {
-            val manager = AppWidgetManager.getInstance(context)
-            manager.getAppWidgetIds(ComponentName(context, RoadockWidget::class.java)).forEach { update(context, it) }
+            val app = context.applicationContext
+            val manager = AppWidgetManager.getInstance(app)
+            manager.getAppWidgetIds(ComponentName(app, RoadockWidget::class.java)).forEach { update(app, it) }
         }
 
         fun rows(context: Context, page: String): List<ChecklistItem> {
@@ -92,7 +93,7 @@ class RoadockWidget : AppWidgetProvider() {
         fun rowView(context: Context, item: ChecklistItem): RemoteViews =
             RemoteViews(context.packageName, R.layout.widget_row).apply {
                 setTextViewText(R.id.widget_row_text, item.text.take(300))
-                setTextViewTextSize(R.id.widget_row_text, TypedValue.COMPLEX_UNIT_PX, pixels(12))
+                setTextViewTextSize(R.id.widget_row_text, TypedValue.COMPLEX_UNIT_PX, pixels(RoadockStore(context).widgetTextSize()))
                 setInt(R.id.widget_row_text, "setHeight", pixels(28).toInt())
                 setTextColor(R.id.widget_row_text, if (item.checked) 0xFF909090.toInt() else 0xFFC8C8C8.toInt())
                 setImageViewBitmap(R.id.widget_check, checkbox(item.checked))

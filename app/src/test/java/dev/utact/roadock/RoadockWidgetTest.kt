@@ -74,6 +74,21 @@ class RoadockWidgetTest {
         assertEquals((28 * density).toInt(), text.minHeight)
     }
 
+    @Test fun appliesSavedTextSizeWithoutIncreasingRowSpacing() {
+        val context = RuntimeEnvironment.getApplication()
+        val store = RoadockStore(context)
+        val density = android.util.DisplayMetrics.DENSITY_DEVICE_STABLE / 160f
+        for (size in listOf(10, 16)) {
+            store.setWidgetTextSize(size)
+            val row = RoadockWidget.rowView(context, ChecklistItem("크기 확인", false)).apply(context, FrameLayout(context))
+            val text = row.findViewById<TextView>(R.id.widget_row_text)
+            assertEquals(size * density, text.textSize, 0.01f)
+            assertEquals((28 * density).toInt(), text.minHeight)
+        }
+        store.setWidgetTextSize(99)
+        assertEquals(16, store.widgetTextSize())
+    }
+
     @Test fun modernAdapterDisplaysCachedRows() {
         val context = RuntimeEnvironment.getApplication()
         val store = RoadockStore(context)
@@ -121,11 +136,14 @@ class RoadockWidgetTest {
         val controller = Robolectric.buildService(ChecklistViewsService::class.java).create()
         val service = controller.get()
         RoadockStore(service).addTask("오프라인 복습")
+        RoadockStore(service).setWidgetTextSize(14)
         val factory = service.onGetViewFactory(Intent().putExtra("page", RoadockStore.PERSONAL))
         factory.onCreate()
         assertEquals(1, factory.count)
         val view = factory.getViewAt(0)!!.apply(service, FrameLayout(service))
         assertTrue(view.findViewById<TextView>(R.id.widget_row_text).text.contains("오프라인 복습"))
+        assertEquals(14f * android.util.DisplayMetrics.DENSITY_DEVICE_STABLE / 160f,
+            view.findViewById<TextView>(R.id.widget_row_text).textSize, 0.01f)
         factory.onDestroy()
         controller.destroy()
     }

@@ -104,6 +104,9 @@ class RoadockStore(context: Context) {
         preferences.edit().putString("tasks", array.toString()).apply()
     }
 
+    fun widgetTextSize(): Int = preferences.getInt("widget-text-size", 12).coerceIn(10, 16)
+    fun setWidgetTextSize(size: Int) { preferences.edit().putInt("widget-text-size", size.coerceIn(10, 16)).apply() }
+
     fun pageIds(): List<String> = projects().map { it.id } + PERSONAL
 
     fun selectedPage(): String = resolvePage(preferences.getString("selected", null))

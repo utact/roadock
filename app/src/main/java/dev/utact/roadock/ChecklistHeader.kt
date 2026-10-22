@@ -34,15 +34,29 @@ class ChecklistHeader(context: Context) : LinearLayout(context) {
         setSingleLine()
         ellipsize = TextUtils.TruncateAt.END
     }
+    private val action = RoadockDesign.iconButton(context, R.drawable.ic_more, "", "", {})
 
     init {
         orientation = VERTICAL
         fun dp(value: Int) = RoadockDesign.dp(context, value)
-        setPadding(dp(24), dp(16), dp(24), dp(8))
-        addView(FrameLayout(context).apply {
+        setPadding(dp(24), dp(16), dp(12), dp(8))
+        val heading = LinearLayout(context).apply {
+            orientation = HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        heading.addView(FrameLayout(context).apply {
             addView(title, FrameLayout.LayoutParams(-2, -1))
-        }, LayoutParams(-1, dp(48)))
+        }, LayoutParams(0, dp(48), 1f))
+        heading.addView(action, LayoutParams(dp(48), dp(48)))
+        addView(heading, LayoutParams(-1, dp(48)))
         addView(supporting, LayoutParams(-1, dp(20)))
+    }
+
+    fun setAction(drawable: Int, description: String, tagValue: String, click: (View) -> Unit) {
+        action.icon = AppCompatResources.getDrawable(context, drawable)
+        action.contentDescription = description
+        action.tag = tagValue
+        action.setOnClickListener(click)
     }
 
     fun bind(name: String, detail: String, completed: Int, total: Int, project: Boolean,

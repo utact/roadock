@@ -44,7 +44,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var empty: TextView
     private lateinit var emptyState: LinearLayout
     private lateinit var registerProject: MaterialButton
-    private lateinit var addButton: MaterialButton
     private var selected = RoadockStore.PERSONAL
     private var personal = true
     private var bindingTabs = false
@@ -145,14 +144,9 @@ class MainActivity : AppCompatActivity() {
             })
         }
         navigation.addView(tabs, LinearLayout.LayoutParams(0, dp(48), 1f))
-        addButton = RoadockDesign.iconButton(this, R.drawable.ic_add, getString(R.string.add_task), "add-personal-task") {
-            if (supportFragmentManager.findFragmentByTag(TaskComposer.TAG) == null)
-                TaskComposer().show(supportFragmentManager, TaskComposer.TAG)
-        }
-        navigation.addView(addButton, square())
-        val more = RoadockDesign.iconButton(this, R.drawable.ic_more, getString(R.string.more_actions), "more") {}
-        more.setOnClickListener { showActions(more) }
-        navigation.addView(more, square())
+        navigation.addView(RoadockDesign.iconButton(this, R.drawable.ic_settings, getString(R.string.settings), "settings") {
+            AppSettingsDialog.show(this)
+        }, square())
         root.addView(navigation, LinearLayout.LayoutParams(-1, dp(56)))
 
         header = ChecklistHeader(this)
@@ -162,6 +156,7 @@ class MainActivity : AppCompatActivity() {
             toggle = { store.toggleTask(it); RoadockWidget.updateAll(this) },
             delete = { store.deleteTask(it); RoadockWidget.updateAll(this) },
             reorder = { store.reorderTasks(it); RoadockWidget.updateAll(this) },
+            open = { showTask(it.text) },
         )
         list = RecyclerView(this).apply {
             id = View.generateViewId()
@@ -230,7 +225,6 @@ class MainActivity : AppCompatActivity() {
         bindingTabs = true
         tabs.getTabAt(if (personal) 1 else 0)?.select()
         bindingTabs = false
-        addButton.visibility = if (personal) View.VISIBLE else View.INVISIBLE
         val project = currentProject()
         val cache = project?.let { store.cache(it.id) } ?: ChecklistCache()
         val loading = project != null && project.id in refreshing
@@ -247,6 +241,14 @@ class MainActivity : AppCompatActivity() {
         header.bind(if (personal) getString(R.string.personal_tasks) else project?.name ?: getString(R.string.projects),
             if (personal) progress else project?.let { "${it.owner}/${it.repository} · $progress" }.orEmpty(),
             completed, rows.size, project != null, loading, cache.error, ::chooseProject)
+        header.setAction(if (personal) R.drawable.ic_add else R.drawable.ic_more,
+            getString(if (personal) R.string.add_task else R.string.project_actions),
+            if (personal) "add-personal-task" else "project-actions") { anchor ->
+            if (personal) {
+                if (supportFragmentManager.findFragmentByTag(TaskComposer.TAG) == null)
+                    TaskComposer().show(supportFragmentManager, TaskComposer.TAG)
+            } else showProjectActions(anchor)
+        }
         empty.text = when {
             personal -> getString(R.string.empty_tasks)
             projects.isEmpty() -> getString(R.string.empty_projects)
@@ -285,7 +287,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun showActions(anchor: View) {
+    private fun showProjectActions(anchor: View) {
         val project = currentProject()
         PopupMenu(this, anchor).apply {
             menu.add(0, 4, 0, R.string.add_project)
@@ -295,7 +297,6 @@ class MainActivity : AppCompatActivity() {
                 menu.add(0, 2, 3, R.string.sync_info)
                 menu.add(0, 3, 4, R.string.delete_project)
             }
-            menu.add(0, 5, 5, R.string.font_license)
             setOnMenuItemClickListener {
                 when (it.itemId) {
                     6 -> project?.let { refresh(it.id) }
@@ -321,12 +322,22 @@ class MainActivity : AppCompatActivity() {
                             }.show()
                     }
                     4 -> projectDialog()
-                    5 -> LicenseDialog.show(this@MainActivity)
                 }
                 true
             }
             show()
         }
+    }
+
+    private fun showTask(text: String) {
+        val content = RoadockDesign.text(this, text).apply {
+            tag = "task-full-text"
+            setTextIsSelectable(true)
+            setPadding(dp(24), dp(8), dp(24), dp(24))
+        }
+        MaterialAlertDialogBuilder(this).setTitle(R.string.task_label)
+            .setView(ScrollView(this).apply { addView(content) })
+            .setPositiveButton(R.string.close, null).show()
     }
 
     private fun refresh(projectId: String) {
@@ -344,14 +355,13 @@ class MainActivity : AppCompatActivity() {
 
     private fun projectDialog(project: Project? = null) {
         val form = column().apply { setPadding(dp(24), dp(8), dp(24), dp(8)) }
-        fun field(caption: Int, value: String, fieldTag: String, example: Int, helper: Int? = null): TextInputEditText {
+        fun field(caption: Int, value: String, fieldTag: String, example: Int): TextInputEditText {
             val container = TextInputLayout(this).apply {
                 hint = getString(caption)
                 isExpandedHintEnabled = false
                 placeholderText = getString(example)
                 boxBackgroundMode = TextInputLayout.BOX_BACKGROUND_OUTLINE
                 setBoxCornerRadii(dp(8).toFloat(), dp(8).toFloat(), dp(8).toFloat(), dp(8).toFloat())
-                if (helper != null) helperText = getString(helper)
             }
             val edit = TextInputEditText(container.context).apply {
                 tag = fieldTag
@@ -365,13 +375,12 @@ class MainActivity : AppCompatActivity() {
             form.addView(container, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(12) })
             return edit
         }
-        val name = field(R.string.project_name, project?.name.orEmpty(), "project-name", R.string.name_example, R.string.project_name_help)
+        val name = field(R.string.project_name, project?.name.orEmpty(), "project-name", R.string.name_example)
         val repository = field(R.string.repository_label, project?.let { "${it.owner}/${it.repository}" }.orEmpty(), "project-repository", R.string.repository_example)
         val branch = field(R.string.branch_label, project?.branch ?: "main", "project-branch", R.string.branch_example)
         val path = field(R.string.path_label, project?.path ?: "TODO.md", "project-path", R.string.path_example)
         val hasToken = project != null && store.hasToken(project.id)
-        val token = field(R.string.token_label, "", "project-token", R.string.token_example,
-            if (hasToken) R.string.token_saved_help else R.string.token_help)
+        val token = field(R.string.token_label, "", "project-token", R.string.token_example)
         token.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
         token.isSaveEnabled = false
         token.importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS

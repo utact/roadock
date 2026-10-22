@@ -18,16 +18,30 @@
         <item name="colorOutlineVariant">#343434</item>
         <item name="colorPrimary">#ECECEC</item>
         <item name="colorOnPrimary">#101010</item>
+        <item name="colorPrimaryContainer">#343434</item>
+        <item name="colorOnPrimaryContainer">#ECECEC</item>
         <item name="colorSecondary">#C8C8C8</item>
         <item name="colorOnSecondary">#101010</item>
+        <item name="colorSecondaryContainer">#343434</item>
+        <item name="colorOnSecondaryContainer">#ECECEC</item>
         <item name="colorError">#F2B8B5</item>
         <item name="android:colorAccent">#ECECEC</item>
         <item name="materialAlertDialogTheme">@style/Roadock.Dialog</item>
         <item name="tabStyle">@style/Roadock.Tabs</item>
+        <item name="sliderStyle">@style/Roadock.Slider</item>
     </style>
     <style name="Roadock.Dialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
         <item name="fontFamily">@font/roadock_sans</item>
         <item name="android:fontFamily">@font/roadock_sans</item>
+    </style>
+    <style name="Roadock.Slider" parent="Widget.MaterialComponents.Slider">
+        <item name="trackHeight">4dp</item>
+        <item name="trackColorActive">?attr/colorPrimary</item>
+        <item name="trackColorInactive">?attr/colorOutlineVariant</item>
+        <item name="thumbWidth">16dp</item>
+        <item name="thumbHeight">16dp</item>
+        <item name="thumbElevation">0dp</item>
+        <item name="tickVisibilityMode">hidden</item>
     </style>
     <style name="Roadock.Tabs" parent="Widget.Material3.TabLayout">
         <item name="tabTextAppearance">@style/Roadock.TabLabel</item>
