@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <style name="AppTheme.Launch" parent="AppTheme">
+        <item name="android:windowBackground">@color/icon_background</item>
+    </style>
     <style name="AppTheme" parent="Theme.Material3.Dark.NoActionBar">
         <item name="fontFamily">@font/roadock_sans</item>
         <item name="android:fontFamily">@font/roadock_sans</item>
