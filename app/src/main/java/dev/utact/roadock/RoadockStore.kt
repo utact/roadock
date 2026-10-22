@@ -61,7 +61,7 @@ class RoadockStore(context: Context) {
                         optString("key").takeIf { value -> value.isNotEmpty() },
                         optJSONArray("requires")?.let { keys ->
                             (0 until keys.length()).map { index -> keys.getString(index) }
-                        }.orEmpty())
+                        }.orEmpty(), optString("details"))
                 }
             },
             fetchedAt = json.getLong("fetchedAt"),
@@ -74,7 +74,7 @@ class RoadockStore(context: Context) {
         val items = JSONArray()
         cache.items.forEach {
             items.put(JSONObject().put("text", it.text).put("checked", it.checked).put("depth", it.depth)
-                .put("owner", it.owner.name).put("requires", JSONArray(it.requires))
+                .put("owner", it.owner.name).put("requires", JSONArray(it.requires)).put("details", it.details)
                 .apply { it.key?.let { key -> put("key", key) } })
         }
         val json = JSONObject().put("items", items).put("fetchedAt", cache.fetchedAt)

@@ -21,8 +21,6 @@ object WidgetSettingsDialog {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(24), dp(8), dp(24), dp(8))
         }
-        content.addView(RoadockDesign.text(context, context.getString(R.string.widget_settings_scope),
-            12, RoadockDesign.secondary), LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(8) })
         content.addView(RoadockDesign.text(context, context.getString(R.string.widget_project_layout)),
             LinearLayout.LayoutParams(-1, dp(40)))
         content.addView(MaterialButtonToggleGroup(context).apply {

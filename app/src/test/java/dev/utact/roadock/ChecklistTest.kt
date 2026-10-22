@@ -2,8 +2,38 @@ package dev.utact.roadock
 
 import org.junit.Assert.*
 import org.junit.Test
+import java.io.File
 
 class ChecklistTest {
+    @Test fun parsesIndentedNotesSeparatelyFromRequirementsAndPreservesParagraphs() {
+        val markdown = "\uFEFF## Human\r\n- [ ] 실기기 확인 <!-- roadock:device -->\r\n" +
+            "  실제 회전과 오류 전환을 확인한다.\r\n  [검증 기준](docs/TESTING.md#device)\r\n\r\n" +
+            "## Agent\r\n- [ ] 편집 구현\r\n  Requires: device\r\n  초안 저장과 복구를 포함한다.\r\n\r\n" +
+            "  설계는 독립적으로 진행한다.\r\n  <!-- hidden\r\n  Requires: hidden\r\n  -->\r\n" +
+            "  - [ ] 하위 작업\r\n    하위 설명\r\n### Next\r\n  관계없는 설명\r\n"
+        val tasks = MarkdownChecklist.parse(markdown)
+        assertEquals("실제 회전과 오류 전환을 확인한다.\n[검증 기준](docs/TESTING.md#device)", tasks[0].details)
+        assertEquals(listOf("device"), tasks[1].requires)
+        assertEquals("초안 저장과 복구를 포함한다.\n\n설계는 독립적으로 진행한다.", tasks[1].details)
+        assertEquals("하위 설명", tasks[2].details)
+        assertEquals(markdown.replace("- [ ] 실기기 확인", "- [x] 실기기 확인"),
+            MarkdownChecklist.setHumanChecked(markdown, tasks[0], true))
+    }
+
+    @Test fun templateExamplesMatchTheActualParserContract() {
+        val template = listOf(File("templates/roadock-agent.md"), File("../templates/roadock-agent.md"))
+            .first { it.isFile }.readText()
+        val example = Regex("```markdown\\s*\\n([\\s\\S]*?)\\n```").find(template)!!.groupValues[1]
+        val tasks = MarkdownChecklist.parse(example)
+        assertEquals(3, tasks.size)
+        assertTrue(tasks.all { it.details.isNotBlank() })
+        val human = tasks.single { it.owner == TaskOwner.HUMAN }
+        assertEquals("api-key", human.key)
+        val dependent = tasks.single { it.requires.isNotEmpty() }
+        assertEquals(DependencyStatus(waiting = listOf(human.text)), TaskDependencies(tasks).status(dependent))
+        assertEquals(tasks.size, tasks.map { it.text }.distinct().size)
+    }
+
     @Test fun parsesIndentedHumanPrerequisitesWithoutLeakingAcrossTasksHeadingsOrFences() {
         val markdown = "\uFEFF## Human\r\n- [ ] 키 발급 <!-- roadock:key -->\r\n  Requires: ignored\r\n" +
             "## Agent\r\n- [ ] API 호출\r\n  설명\r\n  Requires: key, access\r\n  Requires: key\r\n" +

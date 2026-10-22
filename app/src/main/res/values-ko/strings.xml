@@ -23,7 +23,6 @@
     <string name="add_task">할 일 추가</string>
     <string name="add_project">프로젝트 등록</string>
     <string name="widget_settings">위젯 설정</string>
-    <string name="widget_settings_scope">모든 홈 화면 위젯에 적용됩니다</string>
     <string name="task_owner_filter">담당 필터</string>
     <string name="empty_owner_tasks">%1$s 작업이 없습니다</string>
     <string name="project_actions">프로젝트 메뉴</string>

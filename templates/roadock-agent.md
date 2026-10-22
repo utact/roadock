@@ -19,17 +19,22 @@
 - Read `TODO.md` before work; update affected tasks and next steps with related changes.
 - Never mark Human tasks complete without user confirmation.
 - Refresh remote changes before editing or pushing; preserve mobile Human completions when resolving conflicts.
-- Record details and dependencies below the task; never include secrets.
+- Add indented plain-text notes directly below a task when its scope or completion criteria need context.
+  Indent notes at least two spaces beyond the checkbox line; keep them before child tasks or headings.
+  Use short paragraphs and Markdown links to relevant project documents. Never include secrets.
 - Roadock displays task text, Human/Agent labels, and waiting labels for `Requires`.
-  Headings and other notes are hidden; dependencies are informational, not enforced.
+  Notes appear in task details in the app; headings stay hidden. Dependencies are informational, not enforced.
 - Commit checklist updates with related changes; push only with explicit approval.
 
 ```markdown
 ## Human
 - [ ] API 키 발급 <!-- roadock:api-key -->
+  서비스에서 프로젝트용 키를 발급하고 앱의 인증 설정에 등록한다. 키 값은 이 파일에 적지 않는다.
 
 ## Agent
 - [ ] 인증 방식 비교·설계
+  기존 권한과 비용을 비교하고 기본안을 정한다. 키 발급을 기다리지 않고 진행한다.
 - [ ] 발급 키로 API 호출 검증
   Requires: api-key
+  실제 응답과 인증 실패 처리를 확인한다.
 ```

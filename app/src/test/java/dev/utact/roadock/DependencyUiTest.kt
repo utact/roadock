@@ -7,6 +7,8 @@ import android.view.View
 import android.widget.FrameLayout
 import android.widget.ListView
 import android.widget.TextView
+import android.text.Spanned
+import android.text.style.URLSpan
 import androidx.appcompat.app.AlertDialog
 import org.junit.Assert.*
 import org.junit.Test
@@ -30,6 +32,8 @@ class DependencyUiTest {
         ## Agent
         - [ ] API 실호출 검증
           Requires: key, access
+          실제 응답과 인증 실패 처리를 확인한다.
+          [검증 기준](docs/TESTING.md#api)
         - [ ] 인증 방식 비교
         - [x] 이전 검증
           Requires: key
@@ -87,6 +91,12 @@ class DependencyUiTest {
                 detail.window!!.decorView.findViewWithTag<TextView>("task-full-text").text.toString())
             assertEquals("Agent", detail.window!!.decorView.findViewWithTag<TextView>("task-owner").text.toString())
             assertEquals("API 키 발급 대기", detail.window!!.decorView.findViewWithTag<TextView>("task-dependency").text.toString())
+            val notes = detail.window!!.decorView.findViewWithTag<TextView>("task-details")
+            assertEquals("실제 응답과 인증 실패 처리를 확인한다.\n검증 기준", notes.text.toString())
+            assertTrue(notes.isTextSelectable)
+            val spans = notes.text as Spanned
+            assertEquals("https://github.com/utact/roadock/blob/main/docs/TESTING.md#api",
+                spans.getSpans(0, spans.length, URLSpan::class.java).single().url)
             detail.dismiss()
 
             val original = store.cache(project.id)

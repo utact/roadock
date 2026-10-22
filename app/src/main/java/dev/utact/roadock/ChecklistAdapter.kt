@@ -8,6 +8,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.ImageView
+import android.widget.FrameLayout
+import android.widget.ProgressBar
 import androidx.core.view.ViewCompat
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat.AccessibilityActionCompat
 import androidx.recyclerview.widget.ItemTouchHelper
@@ -17,7 +19,7 @@ import com.google.android.material.checkbox.MaterialCheckBox
 data class ChecklistRow(val id: String, val text: String, val checked: Boolean, val depth: Int = 0,
     val projectId: String? = null, val source: ChecklistItem? = null,
     val canToggle: Boolean = false, val section: TaskOwner? = null,
-    val dependency: DependencyStatus = DependencyStatus())
+    val dependency: DependencyStatus = DependencyStatus(), val saving: Boolean = false)
 
 class ChecklistAdapter(
     private val toggle: (ChecklistRow) -> Unit,
@@ -137,11 +139,11 @@ class ChecklistAdapter(
         holder.root.deleteButton.contentDescription = holder.root.context.getString(R.string.delete_task, item.text)
         holder.root.deleteButton.setOnClickListener { delete(item.id) }
         val context = holder.root.context
-        val dependencyText = item.dependency.description(context)
+        val dependencyText = if (item.saving) context.getString(R.string.saving) else item.dependency.description(context)
         val mainRowHeight = RoadockDesign.listRow
         holder.root.layoutParams.height = RoadockDesign.dp(context,
             mainRowHeight + if (dependencyText.isEmpty()) 0 else 18)
-        listOf(holder.check, holder.handle).forEach { control ->
+        listOf(holder.checkArea, holder.handle).forEach { control ->
             (control.layoutParams as LinearLayout.LayoutParams).apply {
                 gravity = Gravity.TOP
                 topMargin = RoadockDesign.dp(context, (mainRowHeight - 48) / 2)
@@ -155,6 +157,10 @@ class ChecklistAdapter(
         holder.check.tag = "task-${item.id}"
         holder.check.isChecked = item.checked
         holder.check.isEnabled = editable || item.canToggle
+        holder.check.visibility = if (item.saving) View.INVISIBLE else View.VISIBLE
+        holder.progress.tag = "saving-${item.id}"
+        holder.progress.visibility = if (item.saving) View.VISIBLE else View.GONE
+        holder.progress.contentDescription = "${item.text}, ${context.getString(R.string.saving)}"
         holder.check.contentDescription = if (editable || item.source?.owner == TaskOwner.HUMAN) item.text
             else holder.root.context.getString(R.string.read_only_task, item.text)
         var restoring = false
@@ -175,7 +181,11 @@ class ChecklistAdapter(
         holder.dependency.text = dependencyText
         holder.dependency.tag = "dependency-${item.id}"
         holder.dependency.visibility = if (dependencyText.isEmpty()) View.GONE else View.VISIBLE
-        holder.dependency.setTextColor(if (item.dependency.unresolved.isEmpty()) 0xFFD4BD8A.toInt() else RoadockDesign.error)
+        holder.dependency.setTextColor(when {
+            item.saving -> RoadockDesign.secondary
+            item.dependency.unresolved.isEmpty() -> 0xFFD4BD8A.toInt()
+            else -> RoadockDesign.error
+        })
         holder.dependency.setOnClickListener { open(item) }
         ViewCompat.replaceAccessibilityAction(holder.label, AccessibilityActionCompat.ACTION_CLICK,
             holder.root.context.getString(R.string.view_full_text)) { _, _ -> open(item); true }
@@ -226,6 +236,13 @@ class ChecklistAdapter(
     class Holder(parent: ViewGroup) : RecyclerView.ViewHolder(SwipeTaskRow(parent.context)) {
         val root = itemView as SwipeTaskRow
         val check = MaterialCheckBox(parent.context)
+        val checkArea = FrameLayout(parent.context)
+        val progress = ProgressBar(parent.context, null, android.R.attr.progressBarStyleSmall).apply {
+            isIndeterminate = true
+            indeterminateTintList = ColorStateList.valueOf(RoadockDesign.text)
+            visibility = View.GONE
+            accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
+        }
         val label = RoadockDesign.text(parent.context, "")
         val dependency = RoadockDesign.text(parent.context, "", RoadockDesign.supporting).apply {
             setSingleLine()
@@ -250,7 +267,10 @@ class ChecklistAdapter(
                 intArrayOf(RoadockDesign.text, RoadockDesign.outline),
             )
             check.setCenterIfNoTextEnabled(true)
-            root.content.addView(check, LinearLayout.LayoutParams(RoadockDesign.dp(context, 48), RoadockDesign.dp(context, 48)))
+            checkArea.addView(check, FrameLayout.LayoutParams(-1, -1))
+            checkArea.addView(progress, FrameLayout.LayoutParams(RoadockDesign.dp(context, 20),
+                RoadockDesign.dp(context, 20), Gravity.CENTER))
+            root.content.addView(checkArea, LinearLayout.LayoutParams(RoadockDesign.dp(context, 48), RoadockDesign.dp(context, 48)))
             label.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
             label.setSingleLine()
             label.ellipsize = android.text.TextUtils.TruncateAt.END

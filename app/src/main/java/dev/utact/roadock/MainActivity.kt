@@ -6,6 +6,7 @@ import android.content.SharedPreferences
 import android.os.Bundle
 import android.text.InputFilter
 import android.text.InputType
+import android.text.method.LinkMovementMethod
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
@@ -243,7 +244,8 @@ class MainActivity : AppCompatActivity() {
         val project = currentProject()
         val cache = project?.let { store.cache(it.id) } ?: ChecklistCache()
         val loading = project != null && project.id in refreshing
-        val saving = project != null && RefreshQueue.pending(project.id) != null
+        val pending = project?.let { RefreshQueue.pending(it.id) }
+        val saving = pending != null
         swipeRefresh.isEnabled = project != null && !saving
         swipeRefresh.isRefreshing = loading
         val ownerFilter = store.projectFilter()
@@ -257,7 +259,8 @@ class MainActivity : AppCompatActivity() {
             val dependencies = TaskDependencies(cache.items)
             val tasks = cache.items.mapIndexed { index, item -> ChecklistRow("${project?.id}-$index", item.text,
                 item.checked, item.depth, project?.id, item, item.owner == TaskOwner.HUMAN && !saving && !loading,
-                dependency = dependencies.status(item)) }.filter { ownerFilter == null || it.source?.owner == ownerFilter }
+                dependency = dependencies.status(item), saving = item.owner == TaskOwner.HUMAN && item == pending)
+            }.filter { ownerFilter == null || it.source?.owner == ownerFilter }
             if (ownerFilter != null || tasks.none { it.source?.owner == TaskOwner.HUMAN }) tasks else buildList {
                 for (owner in TaskOwner.entries) {
                     val group = tasks.filter { it.source?.owner == owner }
@@ -352,9 +355,14 @@ class MainActivity : AppCompatActivity() {
                 setTextIsSelectable(true)
                 ViewCompat.setAccessibilityHeading(this, true)
             }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(8) })
-            item.dependency.description(this@MainActivity).takeIf { it.isNotEmpty() }?.let { description ->
+            val supporting = if (item.saving) getString(R.string.saving) else item.dependency.description(this@MainActivity)
+            supporting.takeIf { it.isNotEmpty() }?.let { description ->
                 addView(RoadockDesign.text(this@MainActivity, description, 13,
-                    if (item.dependency.unresolved.isEmpty()) 0xFFD4BD8A.toInt() else RoadockDesign.error).apply {
+                    when {
+                        item.saving -> RoadockDesign.secondary
+                        item.dependency.unresolved.isEmpty() -> 0xFFD4BD8A.toInt()
+                        else -> RoadockDesign.error
+                    }).apply {
                     tag = "task-dependency"
                     setTextIsSelectable(true)
                 }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(12) })
@@ -363,6 +371,16 @@ class MainActivity : AppCompatActivity() {
                 getString(R.string.dependency_references, item.dependency.unresolved.joinToString(", ")),
                 12, RoadockDesign.secondary).apply { setTextIsSelectable(true) },
                 LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(8) })
+            item.source?.details?.takeIf { it.isNotBlank() }?.let { details ->
+                val project = store.projects().find { it.id == item.projectId }
+                addView(RoadockDesign.text(this@MainActivity, "", 14, RoadockDesign.secondary).apply {
+                    tag = "task-details"
+                    text = TaskDetailText.format(details, project)
+                    setTextIsSelectable(true)
+                    movementMethod = LinkMovementMethod.getInstance()
+                    setLinkTextColor(RoadockDesign.text)
+                }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(12) })
+            }
         }
         ViewCompat.setAccessibilityPaneTitle(content, item.text)
         MaterialAlertDialogBuilder(this)

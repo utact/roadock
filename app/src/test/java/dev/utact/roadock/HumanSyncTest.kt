@@ -3,16 +3,75 @@ package dev.utact.roadock
 import java.io.IOException
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import android.os.Looper
+import android.view.View
+import android.widget.CheckBox
+import android.widget.TextView
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import org.robolectric.Robolectric
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class HumanSyncTest {
+    @Test fun showsPendingFeedbackUntilConfirmationAndRestoresTheCheckboxOnFailure() {
+        val store = RoadockStore(context)
+        store.saveProject(project)
+        store.selectPage(project.id)
+        store.saveCache(project, ChecklistCache(listOf(human, agent), 123))
+        val controller = Robolectric.buildActivity(MainActivity::class.java).setup()
+        var root = controller.get().window.decorView
+        fun layout() {
+            repeat(3) {
+                shadowOf(Looper.getMainLooper()).idle()
+                root.measure(View.MeasureSpec.makeMeasureSpec(393, View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(852, View.MeasureSpec.EXACTLY))
+                root.layout(0, 0, 393, 852)
+            }
+        }
+        for ((initial, failure) in listOf(false to false, true to false, true to true)) {
+            val target = human.copy(checked = initial)
+            store.saveCache(project, ChecklistCache(listOf(target, agent), 123))
+            val started = CountDownLatch(1)
+            val release = CountDownLatch(1)
+            val fake = client {
+                started.countDown()
+                check(release.await(30, TimeUnit.SECONDS))
+                if (failure) throw IOException()
+                listOf(target.copy(checked = !initial), agent)
+            }
+            val future = RefreshQueue.setHumanChecked(context, project, target, !initial, fake)!!
+            try {
+                assertTrue(started.await(5, TimeUnit.SECONDS))
+                layout()
+                assertEquals(initial, store.cache(project.id).items.first().checked)
+                assertEquals(View.VISIBLE, root.findViewWithTag<View>("saving-sync-0").visibility)
+                assertEquals(View.INVISIBLE, root.findViewWithTag<View>("task-sync-0").visibility)
+                assertEquals(context.getString(R.string.saving), root.findViewWithTag<TextView>("dependency-sync-0").text.toString())
+                controller.recreate()
+                root = controller.get().window.decorView
+                layout()
+                assertEquals(View.VISIBLE, root.findViewWithTag<View>("saving-sync-0").visibility)
+                assertFalse(root.findViewWithTag<CheckBox>("task-sync-0").isEnabled)
+            } finally { release.countDown() }
+            future.get(5, TimeUnit.SECONDS)
+            layout()
+            val checkbox = root.findViewWithTag<CheckBox>("task-sync-0")
+            assertEquals(View.GONE, root.findViewWithTag<View>("saving-sync-0").visibility)
+            assertEquals(View.VISIBLE, checkbox.visibility)
+            assertEquals(if (failure) initial else !initial, checkbox.isChecked)
+            assertTrue(checkbox.isEnabled)
+            if (failure) assertEquals(context.getString(R.string.error_write_unknown),
+                root.findViewWithTag<TextView>("page-metadata").text.toString())
+        }
+        controller.pause().stop().destroy()
+    }
+
     private val context get() = RuntimeEnvironment.getApplication()
     private val project = Project("sync", "ROADOCK", "utact", "roadock", "main", "TODO.md")
     private val human = ChecklistItem("API 키 발급", false, owner = TaskOwner.HUMAN, key = "api-key")

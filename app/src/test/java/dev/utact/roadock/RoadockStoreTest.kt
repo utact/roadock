@@ -50,8 +50,8 @@ class RoadockStoreTest {
 
     @Test fun retainsTaskOwnersAndKeysWhileReadingLegacyCachesAsAgent() {
         store.saveProject(project)
-        val items = listOf(ChecklistItem("키 발급", false, owner = TaskOwner.HUMAN, key = "api-key"),
-            ChecklistItem("구현", true, requires = listOf("api-key", "access")))
+        val items = listOf(ChecklistItem("키 발급", false, owner = TaskOwner.HUMAN, key = "api-key", details = "키 값은 기록하지 않는다."),
+            ChecklistItem("구현", true, requires = listOf("api-key", "access"), details = "응답과 실패 처리를 확인한다.\n\n[기준](docs/TESTING.md)"))
         store.saveCache(project, ChecklistCache(items, 123))
         assertEquals(items, RoadockStore(context).cache(project.id).items)
         context.getSharedPreferences("roadock", Context.MODE_PRIVATE).edit().putString("cache-${project.id}",

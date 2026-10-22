@@ -24,7 +24,6 @@
     <string name="add_task">Add task</string>
     <string name="add_project">Add project</string>
     <string name="widget_settings">Widget settings</string>
-    <string name="widget_settings_scope">Applies to all home screen widgets</string>
     <string name="task_owner_filter">Task owner filter</string>
     <string name="filter_all" translatable="false">All</string>
     <string name="empty_owner_tasks">No %1$s tasks</string>

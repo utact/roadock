@@ -6,6 +6,7 @@ data class ChecklistItem(
     val text: String, val checked: Boolean, val depth: Int = 0,
     val owner: TaskOwner = TaskOwner.AGENT, val key: String? = null,
     val requires: List<String> = emptyList(),
+    val details: String = "",
 )
 
 data class SourceTask(val item: ChecklistItem, val checkboxOffset: Int)
@@ -15,17 +16,38 @@ object MarkdownChecklist {
     private val fence = Regex("^ {0,3}(`{3,}|~{3,})(.*)$")
     private val heading = Regex("^ {0,3}(#{1,6})\\s+(.+?)(?:\\s+#+)?\\s*$")
     private val identity = Regex("\\s*<!--\\s*roadock:([a-z][a-z0-9-]{0,63})\\s*-->$")
-    private val requirement = Regex("^\\s+Requires:\\s*(.*?)\\s*$")
+    private val requirement = Regex("^Requires:\\s*(.*?)\\s*$")
 
     fun parse(markdown: String): List<ChecklistItem> = scan(markdown).map { it.item }
 
     fun scan(markdown: String): List<SourceTask> {
         val result = mutableListOf<SourceTask>()
+        val notes = mutableMapOf<Int, MutableList<String>>()
         val owners = mutableListOf<Pair<Int, TaskOwner>>()
         var fenceChar: Char? = null
         var fenceLength = 0
         var lastTask: Int? = null
         var taskIndent = 0
+        var noteComment = false
+        fun visibleNote(line: String): String {
+            var remaining = line
+            val visible = StringBuilder()
+            while (remaining.isNotEmpty()) {
+                if (noteComment) {
+                    val end = remaining.indexOf("-->")
+                    if (end < 0) break
+                    remaining = remaining.substring(end + 3)
+                    noteComment = false
+                } else {
+                    val start = remaining.indexOf("<!--")
+                    if (start < 0) { visible.append(remaining); break }
+                    visible.append(remaining.substring(0, start))
+                    remaining = remaining.substring(start + 4)
+                    noteComment = true
+                }
+            }
+            return visible.toString().trim()
+        }
         Regex("([^\\r\\n]*)(\\r\\n|\\r|\\n|$)").findAll(markdown).forEach { source ->
             val raw = source.groupValues[1]
             val line = if (source.range.first == 0) raw.removePrefix("\uFEFF") else raw
@@ -63,21 +85,28 @@ object MarkdownChecklist {
                     ), source.range.first + raw.length - line.length + it.groups[2]!!.range.first)
                     lastTask = result.lastIndex
                     taskIndent = it.groupValues[1].replace("\t", "    ").length
+                    noteComment = false
                 }
                 if (task == null && line.isNotBlank()) lastTask?.let { index ->
                     val indent = line.takeWhile { it.isWhitespace() }.replace("\t", "    ").length
                     if (indent <= taskIndent) lastTask = null
-                    else requirement.matchEntire(line)?.let { metadata ->
+                    else {
+                        val note = visibleNote(line)
+                        val metadata = requirement.matchEntire(note)
                         val previous = result[index]
-                        if (previous.item.owner == TaskOwner.AGENT) result[index] = previous.copy(
+                        if (metadata != null && previous.item.owner == TaskOwner.AGENT) result[index] = previous.copy(
                             item = previous.item.copy(requires = (previous.item.requires +
                                 metadata.groupValues[1].split(',').map { it.trim() }).distinct()),
                         )
+                        else if (metadata == null && note.isNotBlank()) notes.getOrPut(index) { mutableListOf() }.add(note)
                     }
                 }
+                if (line.isBlank()) lastTask?.let { index -> notes[index]?.add("") }
             }
         }
-        return result
+        return result.mapIndexed { index, source ->
+            source.copy(item = source.item.copy(details = notes[index]?.joinToString("\n")?.trim().orEmpty()))
+        }
     }
 
     fun setHumanChecked(markdown: String, expected: ChecklistItem, checked: Boolean): String {
