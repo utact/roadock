@@ -9,7 +9,7 @@
 - [ ] 실기기 오프라인 데이터 유지 확인 <!-- roadock:offline-device -->
 - [ ] 실기기 비공개 저장소 인증 확인 <!-- roadock:private-repo -->
 - [ ] Human 체크 원격 저장 확인 <!-- roadock:human-sync -->
-- [ ] 승인 후 GitHub Releases 배포 <!-- roadock:release-approval -->
+- [x] 승인 후 GitHub Releases 배포 <!-- roadock:release-approval -->
 
 ## Agent
 
@@ -70,7 +70,7 @@
 ### Release
 
 - [x] 빌드 방법 문서화
-- [x] README 설치·연동 안내 간소화
+- [x] README 제품 소개·설치 안내 정리
 - [x] APK 빌드
 
 ### Next Version

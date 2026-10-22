@@ -1,14 +1,16 @@
 # ROADOCK
 
-An Android app and home screen widget for GitHub project checklists and personal tasks.
+An Android app and home screen widget for developers working with AI coding agents.
+
+Follow project progress and tasks that need your input using Markdown checklists synced from GitHub.
 
 ## Features
 
-- Human completion sync; read-only Agent tasks
-- Single-column or split project lists with independent scrolling
-- Project switching and cached offline viewing
+- Human completion synced to GitHub; read-only Agent tasks
+- Multiple projects with single-column or split views
+- Independently scrolling lists with cached offline access
+- Separate personal tasks with drag sorting and swipe deletion
 - Adjustable widget text size and background transparency
-- Local personal tasks with drag sorting and swipe deletion
 
 ## Install
 
