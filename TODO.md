@@ -70,6 +70,7 @@
 ### Release
 
 - [x] 빌드 방법 문서화
+- [x] README 설치·연동 안내 간소화
 - [x] APK 빌드
 
 ### Next Version
