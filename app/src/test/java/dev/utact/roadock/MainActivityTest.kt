@@ -458,12 +458,7 @@ class MainActivityTest {
         content.findViewWithTag<Slider>("widget-text-size").value = 14f
         assertEquals(14, RoadockStore(activity).widgetTextSize())
         assertEquals("14", content.findViewWithTag<TextView>("widget-text-size-value").text.toString())
-        val preview = content.findViewWithTag<ViewGroup>("widget-text-preview")
-        assertEquals(3, preview.childCount)
-        val previewLabel = preview.getChildAt(2).findViewById<TextView>(R.id.widget_row_text)
-        assertEquals(24, previewLabel.text.length)
-        assertEquals(14f * android.util.DisplayMetrics.DENSITY_DEVICE_STABLE / 160f, previewLabel.textSize, 0.01f)
-        assertNotNull(preview.getChildAt(0).findViewById<View>(R.id.widget_check))
+        assertNull(content.findViewWithTag<View>("widget-preview"))
         val widgetList = widgets.getViewFor(widgetId).findViewById<ListView>(R.id.widget_list)
         val widgetRow = widgetList.adapter.getView(0, null, widgetList)
         assertEquals(14f * android.util.DisplayMetrics.DENSITY_DEVICE_STABLE / 160f,
@@ -471,7 +466,6 @@ class MainActivityTest {
         content.findViewWithTag<Slider>("widget-transparency").value = 50f
         assertEquals(50, RoadockStore(activity).widgetTransparency())
         assertEquals("50%", content.findViewWithTag<TextView>("widget-transparency-value").text.toString())
-        assertEquals(127, content.findViewById<android.widget.ImageView>(R.id.widget_background).imageAlpha)
         assertEquals(127, widgets.getViewFor(widgetId).findViewById<android.widget.ImageView>(R.id.widget_background).imageAlpha)
         assertEquals(1f, widgets.getViewFor(widgetId).findViewById<View>(R.id.widget_title).alpha, 0.001f)
         content.findViewWithTag<View>("font-license").performClick()
@@ -489,6 +483,7 @@ class MainActivityTest {
         settings.performClick()
         val projectSettings = ShadowDialog.getLatestDialog() as AlertDialog
         assertEquals(14f, projectSettings.window!!.decorView.findViewWithTag<Slider>("widget-text-size").value)
+        assertEquals(50f, projectSettings.window!!.decorView.findViewWithTag<Slider>("widget-transparency").value)
         projectSettings.dismiss()
         controller.pause().stop().destroy()
     }

@@ -2,12 +2,10 @@ package dev.utact.roadock
 
 import android.content.Context
 import android.graphics.Paint
-import android.graphics.drawable.GradientDrawable
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.widget.LinearLayout
-import android.widget.FrameLayout
 import android.widget.ScrollView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.slider.LabelFormatter
@@ -21,23 +19,6 @@ object AppSettingsDialog {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(24), dp(8), dp(24), dp(8))
         }
-        val preview = FrameLayout(context).apply {
-            tag = "widget-preview"
-            background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
-                intArrayOf(0xFF526675.toInt(), 0xFF242A30.toInt(), 0xFF716456.toInt())).apply { cornerRadius = dp(24).toFloat() }
-            clipToOutline = true
-            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
-        }
-        fun renderPreview() {
-            val views = RoadockWidget.previewViews(context)
-            if (preview.childCount == 0) preview.addView(views.apply(context.applicationContext, preview))
-            else views.reapply(context.applicationContext, preview.getChildAt(0))
-            preview.findViewById<View>(R.id.widget_preview_rows).tag = "widget-text-preview"
-        }
-        renderPreview()
-        content.addView(RoadockDesign.text(context, context.getString(R.string.preview), 12, RoadockDesign.secondary),
-            LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(8) })
-        content.addView(preview, LinearLayout.LayoutParams(-1, dp(156)).apply { bottomMargin = dp(16) })
         fun control(label: Int, tagValue: String, initial: Int, from: Int, to: Int, step: Int,
             format: (Int) -> String = { it.toString() }, save: (Int) -> Unit) {
             val value = RoadockDesign.text(context, format(initial), 14, RoadockDesign.secondary).apply {
@@ -62,7 +43,6 @@ object AppSettingsDialog {
                 addOnChangeListener { _, selected, _ ->
                     save(selected.toInt())
                     value.text = format(selected.toInt())
-                    renderPreview()
                     RoadockWidget.updateAll(context)
                 }
             }, LinearLayout.LayoutParams(-1, dp(48)))

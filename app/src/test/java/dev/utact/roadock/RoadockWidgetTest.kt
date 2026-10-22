@@ -30,23 +30,21 @@ class RoadockWidgetTest {
             assertNotNull((row.getChildAt(0) as android.widget.ImageView).drawable)
             (row.getChildAt(1) as TextView).text.toString()
         }
-        assertEquals(listOf(R.string.widget_sample_short, R.string.widget_sample_done, R.string.widget_sample_long)
+        assertEquals(context.getString(R.string.widget_sample_title), preview.findViewById<TextView>(R.id.widget_title).text.toString())
+        assertEquals(listOf(R.string.widget_sample_build, R.string.widget_sample_errors, R.string.widget_sample_test)
             .map { context.getString(it) }, labels)
     }
 
-    @Test @Config(sdk = [28]) fun changesOnlyBackgroundTransparencyAndKeepsPreviewInSync() {
+    @Test @Config(sdk = [28]) fun changesOnlyBackgroundTransparency() {
         val context = RuntimeEnvironment.getApplication()
         val store = RoadockStore(context)
         for (transparency in listOf(0, 15, 50, 100)) {
             store.setWidgetTransparency(transparency)
             val actual = RoadockWidget.views(context, 10).apply(context, AppWidgetHostView(context))
-            val preview = RoadockWidget.previewViews(context).apply(context, FrameLayout(context))
-            for (view in listOf(actual, preview)) {
-                assertEquals(((100 - transparency) * 255f / 100).toInt(),
-                    view.findViewById<android.widget.ImageView>(R.id.widget_background).imageAlpha)
-                assertEquals(1f, view.findViewById<View>(R.id.widget_title).alpha, 0.001f)
-                assertEquals(1f, view.findViewById<View>(R.id.widget_content).alpha, 0.001f)
-            }
+            assertEquals(((100 - transparency) * 255f / 100).toInt(),
+                actual.findViewById<android.widget.ImageView>(R.id.widget_background).imageAlpha)
+            assertEquals(1f, actual.findViewById<View>(R.id.widget_title).alpha, 0.001f)
+            assertEquals(1f, actual.findViewById<View>(R.id.widget_content).alpha, 0.001f)
         }
         store.setWidgetTransparency(-10)
         assertEquals(0, RoadockStore(context).widgetTransparency())
@@ -54,20 +52,17 @@ class RoadockWidgetTest {
         assertEquals(100, RoadockStore(context).widgetTransparency())
     }
 
-    @Test fun scalesCheckboxWithTypeWithoutChangingRowHeightOrSampleText() {
+    @Test fun scalesCheckboxWithTypeWithoutChangingRowHeight() {
         val context = RuntimeEnvironment.getApplication()
         val store = RoadockStore(context)
         val density = android.util.DisplayMetrics.DENSITY_DEVICE_STABLE / 160f
         for (size in listOf(10, 12, 16)) {
             store.setWidgetTextSize(size)
-            val preview = RoadockWidget.previewViews(context).apply(context, FrameLayout(context))
-            val rows = preview.findViewById<android.view.ViewGroup>(R.id.widget_preview_rows)
-            val row = rows.getChildAt(0)
+            val row = RoadockWidget.rowView(context, ChecklistItem("크기 확인", false)).apply(context, FrameLayout(context))
             val checkbox = row.findViewById<android.widget.ImageView>(R.id.widget_check)
             val bitmap = (checkbox.drawable as android.graphics.drawable.BitmapDrawable).bitmap
             assertEquals((size * density * 4f / 3f).toInt(), bitmap.width)
             assertEquals((28 * density).toInt(), row.findViewById<TextView>(R.id.widget_row_text).minHeight)
-            assertEquals(context.getString(R.string.widget_sample_long), rows.getChildAt(2).findViewById<TextView>(R.id.widget_row_text).text.toString())
         }
     }
 

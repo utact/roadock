@@ -28,10 +28,10 @@
     <string name="view_full_text">View full text</string>
     <string name="widget_text_size">Widget text size</string>
     <string name="widget_transparency">Background transparency</string>
-    <string name="preview">Preview</string>
-    <string name="widget_sample_short">Create API key</string>
-    <string name="widget_sample_done">Check widget navigation</string>
-    <string name="widget_sample_long">Review checklist refresh</string>
+    <string name="widget_sample_title">Sample project</string>
+    <string name="widget_sample_build">Build sign-in screen</string>
+    <string name="widget_sample_errors">Refine error messages</string>
+    <string name="widget_sample_test">Test sign-in on device</string>
     <string name="last_refreshed">Last refreshed</string>
     <string name="switch_project">%1$s, switch project</string>
     <string name="completion_count">%1$d/%2$d completed</string>

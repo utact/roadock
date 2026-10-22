@@ -8,7 +8,7 @@ An Android home screen widget for project checklists maintained by AI coding age
 - Group Markdown checkboxes (`- [ ]`, `- [x]`) by Human and Agent
 - Check Human tasks in the app and save them to GitHub; keep Agent tasks read-only
 - Switch projects with left and right widget buttons; scroll long lists vertically
-- Adjust widget text size and background transparency with a live preview
+- Adjust widget text size and background transparency in app settings
 - Refresh remote checklists and cache the last fetched content
 - Add, complete, reorder, and delete local personal tasks (up to 24 characters each)
 

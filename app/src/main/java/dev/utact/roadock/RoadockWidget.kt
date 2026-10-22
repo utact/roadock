@@ -105,17 +105,6 @@ class RoadockWidget : AppWidgetProvider() {
                 setViewPadding(R.id.widget_row_text, pixels(10).toInt(), 0, 0, 0)
             }
 
-        fun previewViews(context: Context): RemoteViews = RemoteViews(context.packageName, R.layout.widget_preview).apply {
-            appearance(context, this)
-            setTextViewText(R.id.widget_title, context.getString(R.string.app_name))
-            removeAllViews(R.id.widget_preview_rows)
-            listOf(
-                ChecklistItem(context.getString(R.string.widget_sample_short), false),
-                ChecklistItem(context.getString(R.string.widget_sample_done), true),
-                ChecklistItem(context.getString(R.string.widget_sample_long), false),
-            ).forEach { addView(R.id.widget_preview_rows, rowView(context, it)) }
-        }
-
         private fun appearance(context: Context, views: RemoteViews) {
             views.setImageViewResource(R.id.widget_background, R.drawable.widget_surface)
             views.setInt(R.id.widget_background, "setImageAlpha", ((100 - RoadockStore(context).widgetTransparency()) * 255f / 100).toInt())
