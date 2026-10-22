@@ -10,7 +10,7 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
-class CredentialVault(context: Context) {
+class CredentialVault(private val context: Context) {
     private val preferences = context.getSharedPreferences("credentials", Context.MODE_PRIVATE)
 
     fun contains(id: String): Boolean = preferences.contains(id)
@@ -37,7 +37,7 @@ class CredentialVault(context: Context) {
             cipher.init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(128, Base64.decode(parts[0], Base64.NO_WRAP)))
             return String(cipher.doFinal(Base64.decode(parts[1], Base64.NO_WRAP)), Charsets.UTF_8)
         } catch (_: Exception) {
-            throw IllegalStateException("토큰을 읽을 수 없습니다. 프로젝트 설정에서 다시 저장해 주세요")
+            throw IllegalStateException(context.getString(R.string.error_token_read))
         }
     }
 

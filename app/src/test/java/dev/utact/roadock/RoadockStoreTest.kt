@@ -42,7 +42,7 @@ class RoadockStoreTest {
         store.reorderTasks(order)
         store.toggleTask(order[0])
         assertEquals(order, RoadockStore(context).tasks().map { it.id })
-        assertEquals(listOf("첫째", "둘째", "셋째"), RoadockWidget.rows(context, RoadockStore.PERSONAL).map { it.text })
+        assertEquals(listOf("셋째", "둘째", "첫째"), RoadockWidget.rows(context, RoadockStore.PERSONAL).map { it.text })
         store.reorderTasks(listOf(order[2], "deleted", order[2]))
         assertEquals(listOf(order[2], order[0], order[1]), store.tasks().map { it.id })
     }

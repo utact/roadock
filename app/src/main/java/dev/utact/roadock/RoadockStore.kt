@@ -80,9 +80,9 @@ class RoadockStore(context: Context) {
     }
 
     fun addTask(text: String) = synchronized(lock) {
-        require(text.isNotBlank()) { "할 일을 입력해 주세요" }
-        require(text.trim().length <= TASK_LENGTH && !text.trim().contains('\n')) { "할 일은 한 줄, ${TASK_LENGTH}자 이내로 입력해 주세요" }
-        saveTasks(listOf(PersonalTask(text = text.trim())) + tasks())
+        requireInput(text.isNotBlank(), R.string.error_task_empty)
+        requireInput(text.trim().length <= TASK_LENGTH && !text.trim().contains('\n'), R.string.error_task_length, TASK_LENGTH)
+        saveTasks(tasks() + PersonalTask(text = text.trim()))
     }
 
     fun toggleTask(id: String) = synchronized(lock) {

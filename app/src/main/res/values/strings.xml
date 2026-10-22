@@ -1,9 +1,78 @@
 <resources>
-    <string name="app_name">Roadock</string>
-    <string name="widget_description">프로젝트 체크리스트와 개인 할 일</string>
-    <string name="previous_project">이전 체크리스트</string>
-    <string name="next_project">다음 체크리스트</string>
-    <string name="open_app">앱에서 열기</string>
+    <string name="app_name" translatable="false">Roadock</string>
+    <string name="widget_description">Project checklists and personal tasks</string>
+    <string name="previous_project">Previous checklist</string>
+    <string name="next_project">Next checklist</string>
+    <string name="open_app">Open app</string>
     <string name="previous_symbol" translatable="false">‹</string>
     <string name="next_symbol" translatable="false">›</string>
+    <string name="projects">Projects</string>
+    <string name="personal">Personal</string>
+    <string name="personal_tasks">Personal tasks</string>
+    <string name="add_task">Add task</string>
+    <string name="add_project">Add project</string>
+    <string name="more_actions">More options</string>
+    <string name="switch_project">%1$s, switch project</string>
+    <string name="completion_count">%1$d/%2$d completed</string>
+    <string name="empty_count">0 tasks</string>
+    <string name="title_progress">%1$s, %2$d/%3$d completed</string>
+    <string name="read_only_task">%1$s, read only</string>
+    <string name="reorder_task">Reorder %1$s</string>
+    <string name="move_up">Move up</string>
+    <string name="move_down">Move down</string>
+    <string name="delete">Delete</string>
+    <string name="cancel">Cancel</string>
+    <string name="save">Save</string>
+    <string name="close">Close</string>
+    <string name="add">Add</string>
+    <string name="task_label">Task</string>
+    <string name="empty_tasks">No tasks yet</string>
+    <string name="empty_projects">No projects yet</string>
+    <string name="refresh_prompt">Refresh to load the checklist</string>
+    <string name="empty_checklist">No checklist items</string>
+    <string name="refresh">Refresh</string>
+    <string name="refreshing">Refreshing…</string>
+    <string name="refresh_failed_title">%1$s · refresh failed</string>
+    <string name="project_settings">Project settings</string>
+    <string name="sync_info">Sync details</string>
+    <string name="not_fetched">Not fetched yet</string>
+    <string name="delete_project">Remove project</string>
+    <string name="delete_project_message">Remove %1$s and its cached checklist?</string>
+    <string name="font_license" translatable="false">Font license</string>
+    <string name="project_name">Project name (optional)</string>
+    <string name="project_name_help">Default: repository name</string>
+    <string name="repository_label">GitHub repository</string>
+    <string name="branch_label">Branch</string>
+    <string name="path_label">Markdown path</string>
+    <string name="token_label">GitHub token (optional)</string>
+    <string name="token_help">For repositories that require authentication</string>
+    <string name="token_saved_help">Stored token in use</string>
+    <string name="remove_token">Remove stored token</string>
+    <string name="name_example" translatable="false">Roadock</string>
+    <string name="repository_example" translatable="false">owner/repository</string>
+    <string name="branch_example" translatable="false">main</string>
+    <string name="path_example" translatable="false">TODO.md</string>
+    <string name="token_example" translatable="false">github_pat_…</string>
+    <string name="error_project_name">Enter a project name</string>
+    <string name="error_repository_format">Use the owner/repository format</string>
+    <string name="error_repository_name">Check the repository name</string>
+    <string name="error_branch">Enter a valid branch</string>
+    <string name="error_path">Use a file path relative to the repository root</string>
+    <string name="error_task_empty">Enter a task</string>
+    <string name="error_task_length">Use one line with up to %1$d characters</string>
+    <string name="error_save">Unable to save. Check the entered values.</string>
+    <string name="error_token_read">Unable to read the token. Save it again in project settings.</string>
+    <string name="error_token">Check the GitHub token</string>
+    <string name="error_access">Check repository access or the GitHub request limit</string>
+    <string name="error_source">Check the repository, branch, file path, and token access</string>
+    <string name="error_moved">The repository has moved. Update project settings.</string>
+    <string name="error_http">GitHub request failed (%1$d)</string>
+    <string name="error_directory">Select a Markdown file, not a directory</string>
+    <string name="error_cancelled">Refresh cancelled</string>
+    <string name="error_file_size">Use a checklist no larger than 1 MB</string>
+    <string name="error_connection">Check the connection and refresh again</string>
+    <string name="error_refresh">Unable to refresh. Try again later.</string>
+    <string name="widget_open">%1$s, open in app</string>
+    <string name="widget_limit">First %1$d items; open the app to view all</string>
+    <string name="widget_empty_tasks">Add tasks in the app</string>
 </resources>

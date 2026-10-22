@@ -1,7 +1,6 @@
 package dev.utact.roadock
 
 import java.io.ByteArrayOutputStream
-import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -22,23 +21,23 @@ class GitHubClient(
             }
             when (connection.responseCode) {
                 200 -> Unit
-                401 -> throw IOException("GitHub 토큰을 확인해 주세요")
-                403, 429 -> throw IOException("접근 권한 또는 GitHub 요청 한도를 확인해 주세요")
-                404 -> throw IOException("저장소·브랜치·파일 경로와 토큰 권한을 확인해 주세요")
-                301, 302, 307, 308 -> throw IOException("저장소가 이동했습니다. 등록 정보를 수정해 주세요")
-                else -> throw IOException("GitHub 조회에 실패했습니다 (${connection.responseCode})")
+                401 -> throw FetchException(R.string.error_token)
+                403, 429 -> throw FetchException(R.string.error_access)
+                404 -> throw FetchException(R.string.error_source)
+                301, 302, 307, 308 -> throw FetchException(R.string.error_moved)
+                else -> throw FetchException(R.string.error_http, connection.responseCode)
             }
             if (connection.contentType?.substringBefore(';') == "application/json") {
-                throw IOException("폴더 대신 Markdown 파일 경로를 입력해 주세요")
+                throw FetchException(R.string.error_directory)
             }
             val bytes = ByteArrayOutputStream()
             connection.inputStream.use { input ->
                 val buffer = ByteArray(8192)
                 while (true) {
-                    if (Thread.currentThread().isInterrupted) throw IOException("새로고침이 취소되었습니다")
+                    if (Thread.currentThread().isInterrupted) throw FetchException(R.string.error_cancelled)
                     val count = input.read(buffer)
                     if (count == -1) break
-                    if (bytes.size() + count > 1_048_576) throw IOException("1MB 이하의 체크리스트를 사용해 주세요")
+                    if (bytes.size() + count > 1_048_576) throw FetchException(R.string.error_file_size)
                     bytes.write(buffer, 0, count)
                 }
             }

@@ -1,0 +1,4 @@
+<resources>
+    <item name="move_task_up" type="id" />
+    <item name="move_task_down" type="id" />
+</resources>

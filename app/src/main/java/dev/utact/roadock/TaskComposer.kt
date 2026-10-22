@@ -35,9 +35,10 @@ class TaskComposer : BottomSheetDialogFragment() {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(24), dp(24), dp(24), dp(24))
         }
-        root.addView(RoadockDesign.text(context, "할 일 추가", 20, weight = 600))
+        root.addView(RoadockDesign.text(context, getString(R.string.add_task), 20, weight = 600))
         val field = TextInputLayout(context).apply {
-            hint = "할 일"
+            hint = getString(R.string.task_label)
+            isExpandedHintEnabled = false
             boxBackgroundMode = TextInputLayout.BOX_BACKGROUND_OUTLINE
             setBoxCornerRadii(dp(8).toFloat(), dp(8).toFloat(), dp(8).toFloat(), dp(8).toFloat())
             isCounterEnabled = true
@@ -59,7 +60,7 @@ class TaskComposer : BottomSheetDialogFragment() {
         root.addView(field, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(16) })
         val add = MaterialButton(context).apply {
             tag = "add-task"
-            text = "추가"
+            text = getString(R.string.add)
             isAllCaps = false
             typeface = RoadockDesign.font(context, 500)
             setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16f)

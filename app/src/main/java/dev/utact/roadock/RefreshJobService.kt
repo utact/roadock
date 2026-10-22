@@ -6,9 +6,6 @@ import android.app.job.JobScheduler
 import android.app.job.JobService
 import android.content.ComponentName
 import android.content.Context
-import java.io.IOException
-import java.net.UnknownHostException
-import java.net.SocketTimeoutException
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
@@ -26,12 +23,7 @@ object RefreshQueue {
                     val cache = try {
                         ChecklistCache(GitHubClient().fetch(project, store.token(project.id)), System.currentTimeMillis())
                     } catch (error: Exception) {
-                        val message = when (error) {
-                            is UnknownHostException, is SocketTimeoutException -> "연결을 확인한 뒤 다시 새로고침해 주세요"
-                            is IOException, is IllegalStateException -> error.message ?: "새로고침에 실패했습니다"
-                            else -> "새로고침에 실패했습니다. 잠시 후 다시 시도해 주세요"
-                        }
-                        store.cache(project.id).copy(error = message)
+                        store.cache(project.id).copy(error = app.errorMessage(error))
                     }
                     store.saveCache(project, cache)
                     RoadockWidget.updateAll(app)

@@ -13,6 +13,7 @@ import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.tabs.TabLayout
+import com.google.android.material.textfield.TextInputLayout
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -25,7 +26,7 @@ import org.robolectric.shadows.ShadowApplication
 import org.robolectric.shadows.ShadowDialog
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
+@Config(sdk = [34], qualifiers = "ko")
 class MainActivityTest {
     private fun layout(activity: MainActivity) {
         shadowOf(Looper.getMainLooper()).idle()
@@ -81,7 +82,10 @@ class MainActivityTest {
         layout(activity)
         assertTrue(store.tasks().single().checked)
         activity.window.decorView.findViewWithTag<View>("row-${task.id}").performLongClick()
-        selectTaskMenu(2)
+        val menu = find<ListView>(ShadowApplication.getInstance().latestPopupWindow.contentView)!!
+        assertEquals(1, menu.adapter.count)
+        assertEquals("삭제", menu.adapter.getItem(0).toString())
+        selectTaskMenu(0)
         layout(activity)
         assertTrue(store.tasks().isEmpty())
         controller.pause().stop().destroy()
@@ -95,8 +99,8 @@ class MainActivityTest {
         val controller = Robolectric.buildActivity(MainActivity::class.java).setup()
         val activity = controller.get()
         layout(activity)
-        activity.window.decorView.findViewWithTag<View>("reorder-${original[0]}").performClick()
-        selectTaskMenu(1)
+        assertTrue(activity.window.decorView.findViewWithTag<View>("reorder-${original[0]}")
+            .performAccessibilityAction(R.id.move_task_down, null))
         layout(activity)
         assertEquals(original.reversed(), store.tasks().map { it.id })
         activity.window.decorView.findViewWithTag<CheckBox>("task-${original[1]}").performClick()
@@ -215,12 +219,15 @@ class MainActivityTest {
         controller.pause().stop().destroy()
     }
 
-    @Test fun derivesTitleProgressFromCurrentProjectAndClearsItOnPersonalTab() {
+    @Test fun derivesTitleProgressForProjectAndPersonalLists() {
         val store = RoadockStore(RuntimeEnvironment.getApplication())
         val project = Project("one", "Roadock", "utact", "roadock", "main", "TODO.md")
         store.saveProject(project)
         store.saveCache(project, ChecklistCache(listOf(ChecklistItem("완료", true), ChecklistItem("진행", false)), 1234))
         store.selectPage(project.id)
+        store.addTask("개인 첫 항목")
+        store.addTask("개인 둘째 항목")
+        store.toggleTask(store.tasks().first().id)
         val controller = Robolectric.buildActivity(MainActivity::class.java).setup()
         val activity = controller.get()
         layout(activity)
@@ -228,7 +235,7 @@ class MainActivityTest {
         assertTrue(title.contentDescription.toString().startsWith("Roadock, 1/2 완료"))
         find<TabLayout>(activity.window.decorView)!!.getTabAt(1)!!.select()
         layout(activity)
-        assertEquals("개인 할 일", title.contentDescription)
+        assertEquals("개인 할 일, 1/2 완료", title.contentDescription)
         controller.pause().stop().destroy()
     }
 
@@ -246,6 +253,8 @@ class MainActivityTest {
         val title = root.findViewWithTag<TextView>("page-title")
         assertTrue(title.isClickable)
         title.performClick()
+        assertEquals(2, find<ListView>(ShadowApplication.getInstance().latestPopupWindow.contentView)!!.adapter.count)
+        assertEquals(View.INVISIBLE, root.findViewWithTag<View>("add-personal-task").visibility)
         selectTaskMenu(1)
         layout(activity)
         assertEquals(second.id, store.selectedPage())
@@ -265,6 +274,44 @@ class MainActivityTest {
         input.setText("작업")
         assertTrue(add.isEnabled)
         (activity.supportFragmentManager.findFragmentByTag(TaskComposer.TAG) as TaskComposer).dismissNow()
+        controller.pause().stop().destroy()
+    }
+
+    @Test @Config(qualifiers = "en") fun usesEnglishLabelsAndStableFieldExamples() {
+        val controller = Robolectric.buildActivity(MainActivity::class.java).setup()
+        val activity = controller.get()
+        layout(activity)
+        val root = activity.window.decorView
+        assertEquals("Personal tasks", root.findViewWithTag<TextView>("page-title").text.toString())
+        root.findViewWithTag<View>("more").performClick()
+        val menu = find<ListView>(ShadowApplication.getInstance().latestPopupWindow.contentView)!!
+        assertEquals(listOf("Add project", "Font license"), (0 until menu.adapter.count).map { menu.adapter.getItem(it).toString() })
+        selectTaskMenu(0)
+        val dialog = ShadowDialog.getLatestDialog() as AlertDialog
+        val form = dialog.window!!.decorView
+        val repository = form.findViewWithTag<EditText>("project-repository")
+        val container = repository.parent.parent as TextInputLayout
+        assertEquals("GitHub repository", container.hint.toString())
+        assertEquals("owner/repository", container.placeholderText.toString())
+        assertFalse(container.isExpandedHintEnabled)
+        assertEquals("main", form.findViewWithTag<EditText>("project-branch").text.toString())
+        assertEquals("TODO.md", form.findViewWithTag<EditText>("project-path").text.toString())
+        dialog.dismiss()
+        controller.pause().stop().destroy()
+    }
+
+    @Test fun appendsNewTasksAfterTheManualOrder() {
+        val store = RoadockStore(RuntimeEnvironment.getApplication())
+        store.addTask("첫째")
+        store.addTask("둘째")
+        store.reorderTasks(store.tasks().map { it.id }.reversed())
+        val controller = Robolectric.buildActivity(MainActivity::class.java).setup()
+        layout(controller.get())
+        val composer = openComposer(controller.get())
+        composer.findViewWithTag<EditText>("task-input").setText("새 항목")
+        composer.findViewWithTag<View>("add-task").performClick()
+        layout(controller.get())
+        assertEquals(listOf("둘째", "첫째", "새 항목"), store.tasks().map { it.text })
         controller.pause().stop().destroy()
     }
 

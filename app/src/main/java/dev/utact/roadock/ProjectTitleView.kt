@@ -30,7 +30,7 @@ class ProjectTitleView(context: Context) : AppCompatTextView(context) {
 
     fun setProgress(completed: Int, total: Int) {
         fraction = if (total > 0) (completed.toFloat() / total).coerceIn(0f, 1f) else 0f
-        contentDescription = if (total > 0) "$text, $completed/$total 완료" else text
+        contentDescription = if (total > 0) context.getString(R.string.title_progress, text, completed, total) else text
         updateAnimation()
         invalidate()
     }

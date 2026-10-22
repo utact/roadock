@@ -46,10 +46,10 @@ class ChecklistHeader(context: Context) : LinearLayout(context) {
     }
 
     fun bind(name: String, detail: String, completed: Int, total: Int, project: Boolean,
-        loading: Boolean, error: String?, select: () -> Unit) {
+        loading: Boolean, error: String?, select: (View) -> Unit) {
         title.text = name
-        title.setProgress(if (project) completed else 0, if (project) total else 0)
-        title.setOnClickListener(if (project) View.OnClickListener { select() } else null)
+        title.setProgress(completed, total)
+        title.setOnClickListener(if (project) View.OnClickListener { select(it) } else null)
         title.isClickable = project
         title.isFocusable = project
         val chevron = if (project) AppCompatResources.getDrawable(context, R.drawable.ic_expand)?.apply {
@@ -58,12 +58,12 @@ class ChecklistHeader(context: Context) : LinearLayout(context) {
             setTint(RoadockDesign.secondary)
         } else null
         title.setCompoundDrawablesRelative(null, null, chevron, null)
-        if (project) title.contentDescription = "${title.contentDescription}, 프로젝트 선택"
+        if (project) title.contentDescription = context.getString(R.string.switch_project, title.contentDescription)
         val background = TypedValue()
         title.background = if (project && context.theme.resolveAttribute(android.R.attr.selectableItemBackground, background, true))
             AppCompatResources.getDrawable(context, background.resourceId) else null
         supporting.text = when {
-            loading -> "새로고침 중…"
+            loading -> context.getString(R.string.refreshing)
             error != null -> error
             else -> detail
         }

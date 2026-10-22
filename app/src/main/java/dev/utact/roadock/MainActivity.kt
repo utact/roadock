@@ -1,7 +1,5 @@
 package dev.utact.roadock
 
-import android.appwidget.AppWidgetManager
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
@@ -16,7 +14,6 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.PopupMenu
 import androidx.core.view.ViewCompat
@@ -25,6 +22,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.SimpleItemAnimator
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.checkbox.MaterialCheckBox
@@ -34,7 +32,6 @@ import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import java.text.DateFormat
 import java.util.Date
-import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
     private lateinit var store: RoadockStore
@@ -45,6 +42,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var header: ChecklistHeader
     private lateinit var swipeRefresh: SwipeRefreshLayout
     private lateinit var empty: TextView
+    private lateinit var emptyState: LinearLayout
+    private lateinit var registerProject: MaterialButton
     private lateinit var addButton: MaterialButton
     private var selected = RoadockStore.PERSONAL
     private var personal = true
@@ -75,7 +74,7 @@ class MainActivity : AppCompatActivity() {
         supportFragmentManager.setFragmentResultListener(TaskComposer.RESULT, this) { _, result ->
             store.addTask(result.getString("text").orEmpty())
             showPage()
-            list.scrollToPosition(0)
+            list.scrollToPosition(adapter.itemCount - 1)
             RoadockWidget.updateAll(this)
         }
         RefreshJobService.schedulePeriodic(this)
@@ -127,8 +126,8 @@ class MainActivity : AppCompatActivity() {
         val navigation = row().apply { setPadding(dp(12), 0, dp(12), 0) }
         tabs = TabLayout(this).apply {
             tabMode = TabLayout.MODE_SCROLLABLE
-            addTab(newTab().setText("프로젝트"))
-            addTab(newTab().setText("개인"))
+            addTab(newTab().setText(R.string.projects))
+            addTab(newTab().setText(R.string.personal))
             addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
                 override fun onTabSelected(tab: TabLayout.Tab) {
                     if (bindingTabs) return
@@ -146,14 +145,12 @@ class MainActivity : AppCompatActivity() {
             })
         }
         navigation.addView(tabs, LinearLayout.LayoutParams(0, dp(48), 1f))
-        addButton = RoadockDesign.iconButton(this, R.drawable.ic_add, "추가", "add-project") {
-            if (personal) {
-                if (supportFragmentManager.findFragmentByTag(TaskComposer.TAG) == null)
-                    TaskComposer().show(supportFragmentManager, TaskComposer.TAG)
-            } else projectDialog()
+        addButton = RoadockDesign.iconButton(this, R.drawable.ic_add, getString(R.string.add_task), "add-personal-task") {
+            if (supportFragmentManager.findFragmentByTag(TaskComposer.TAG) == null)
+                TaskComposer().show(supportFragmentManager, TaskComposer.TAG)
         }
         navigation.addView(addButton, square())
-        val more = RoadockDesign.iconButton(this, R.drawable.ic_more, "더 보기", "more") {}
+        val more = RoadockDesign.iconButton(this, R.drawable.ic_more, getString(R.string.more_actions), "more") {}
         more.setOnClickListener { showActions(more) }
         navigation.addView(more, square())
         root.addView(navigation, LinearLayout.LayoutParams(-1, dp(56)))
@@ -171,13 +168,29 @@ class MainActivity : AppCompatActivity() {
             tag = "checklist"
             layoutManager = LinearLayoutManager(this@MainActivity)
             adapter = this@MainActivity.adapter
+            (itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
             clipToPadding = false
             setPadding(0, 0, 0, dp(24))
         }
         adapter.touchHelper.attachToRecyclerView(list)
         empty = RoadockDesign.text(this, "", 14, RoadockDesign.secondary).apply {
             gravity = Gravity.CENTER
+        }
+        registerProject = MaterialButton(this).apply {
+            tag = "add-project"
+            setText(R.string.add_project)
+            isAllCaps = false
+            typeface = RoadockDesign.font(this@MainActivity, 500)
+            insetTop = 0
+            insetBottom = 0
+            cornerRadius = dp(8)
+            setOnClickListener { projectDialog() }
+        }
+        emptyState = column().apply {
+            gravity = Gravity.CENTER
             setPadding(dp(24), 0, dp(24), dp(48))
+            addView(empty, LinearLayout.LayoutParams(-1, -2))
+            addView(registerProject, LinearLayout.LayoutParams(-2, dp(48)).apply { topMargin = dp(16) })
         }
         listFade = View(this).apply {
             tag = "list-fade"
@@ -198,7 +211,7 @@ class MainActivity : AppCompatActivity() {
             setOnRefreshListener { currentProject()?.let { refresh(it.id) } }
             addView(FrameLayout(this@MainActivity).apply {
                 addView(list, FrameLayout.LayoutParams(-1, -1))
-                addView(empty, FrameLayout.LayoutParams(-1, -1))
+                addView(emptyState, FrameLayout.LayoutParams(-1, -1))
             }, android.view.ViewGroup.LayoutParams(-1, -1))
         }
         root.addView(FrameLayout(this).apply {
@@ -217,8 +230,7 @@ class MainActivity : AppCompatActivity() {
         bindingTabs = true
         tabs.getTabAt(if (personal) 1 else 0)?.select()
         bindingTabs = false
-        addButton.contentDescription = if (personal) "할 일 추가" else "프로젝트 추가"
-        addButton.tag = if (personal) "add-personal-task" else "add-project"
+        addButton.visibility = if (personal) View.VISIBLE else View.INVISIBLE
         val project = currentProject()
         val cache = project?.let { store.cache(it.id) } ?: ChecklistCache()
         val loading = project != null && project.id in refreshing
@@ -231,17 +243,18 @@ class MainActivity : AppCompatActivity() {
         }
         adapter.submit(rows, personal)
         val completed = rows.count { it.checked }
-        val progress = if (rows.isEmpty()) "0개" else "$completed/${rows.size} 완료"
-        header.bind(if (personal) "개인 할 일" else project?.name ?: "프로젝트",
+        val progress = if (rows.isEmpty()) getString(R.string.empty_count) else getString(R.string.completion_count, completed, rows.size)
+        header.bind(if (personal) getString(R.string.personal_tasks) else project?.name ?: getString(R.string.projects),
             if (personal) progress else project?.let { "${it.owner}/${it.repository} · $progress" }.orEmpty(),
-            completed, rows.size, !personal, loading, cache.error) { chooseProject(header) }
+            completed, rows.size, project != null, loading, cache.error, ::chooseProject)
         empty.text = when {
-            personal -> "할 일을 추가해 주세요"
-            projects.isEmpty() -> "프로젝트를 추가해 주세요"
-            currentProject()?.let { store.cache(it.id).fetchedAt } == 0L -> "새로고침해 체크리스트를 가져오세요"
-            else -> "체크박스 항목이 없습니다"
+            personal -> getString(R.string.empty_tasks)
+            projects.isEmpty() -> getString(R.string.empty_projects)
+            cache.fetchedAt == 0L -> getString(R.string.refresh_prompt)
+            else -> getString(R.string.empty_checklist)
         }
-        empty.visibility = if (rows.isEmpty()) View.VISIBLE else View.GONE
+        emptyState.visibility = if (rows.isEmpty()) View.VISIBLE else View.GONE
+        registerProject.visibility = if (!personal && projects.isEmpty()) View.VISIBLE else View.GONE
         list.visibility = if (rows.isEmpty()) View.INVISIBLE else View.VISIBLE
         list.post { updateListFade() }
     }
@@ -259,14 +272,13 @@ class MainActivity : AppCompatActivity() {
                 menu.add(1, index, index, project.name).apply { isCheckable = true; isChecked = project.id == selected }
             }
             menu.setGroupCheckable(1, true, true)
-            menu.add(0, projects.size, projects.size, "프로젝트 추가")
             setOnMenuItemClickListener {
                 projects.getOrNull(it.itemId)?.let { project ->
                     selected = project.id
                     store.selectPage(selected)
                     showPage()
                     list.scrollToPosition(0)
-                } ?: projectDialog()
+                }
                 true
             }
             show()
@@ -276,14 +288,14 @@ class MainActivity : AppCompatActivity() {
     private fun showActions(anchor: View) {
         val project = currentProject()
         PopupMenu(this, anchor).apply {
+            menu.add(0, 4, 0, R.string.add_project)
             if (project != null) {
-                menu.add(0, 6, 0, "새로고침").isEnabled = project.id !in refreshing
-                menu.add(0, 1, 0, "프로젝트 설정")
-                menu.add(0, 2, 1, "동기화 정보")
-                menu.add(0, 3, 2, "프로젝트 삭제")
+                menu.add(0, 6, 1, R.string.refresh).isEnabled = project.id !in refreshing
+                menu.add(0, 1, 2, R.string.project_settings)
+                menu.add(0, 2, 3, R.string.sync_info)
+                menu.add(0, 3, 4, R.string.delete_project)
             }
-            menu.add(0, 4, 3, "위젯 추가")
-            menu.add(0, 5, 4, "폰트 라이선스")
+            menu.add(0, 5, 5, R.string.font_license)
             setOnMenuItemClickListener {
                 when (it.itemId) {
                     6 -> project?.let { refresh(it.id) }
@@ -291,27 +303,25 @@ class MainActivity : AppCompatActivity() {
                     2 -> project?.let { value ->
                         val cache = store.cache(value.id)
                         val fetched = cache.fetchedAt
-                        val date = if (fetched == 0L) "아직 조회하지 않음" else DateFormat.getDateTimeInstance(
-                            DateFormat.SHORT, DateFormat.SHORT, Locale.KOREA).format(Date(fetched))
-                        MaterialAlertDialogBuilder(this@MainActivity).setTitle("동기화 정보")
+                        val date = if (fetched == 0L) getString(R.string.not_fetched) else DateFormat.getDateTimeInstance(
+                            DateFormat.SHORT, DateFormat.SHORT, resources.configuration.locales[0]).format(Date(fetched))
+                        MaterialAlertDialogBuilder(this@MainActivity).setTitle(R.string.sync_info)
                             .setMessage("${value.owner}/${value.repository}\n${value.branch}\n${value.path}\n\n$date" +
                                 (cache.error?.let { "\n\n$it" } ?: ""))
-                            .setPositiveButton("확인", null).show()
+                            .setPositiveButton(R.string.close, null).show()
                     }
                     3 -> project?.let { value ->
-                        MaterialAlertDialogBuilder(this@MainActivity).setTitle("프로젝트 삭제")
-                            .setMessage("${value.name} 등록과 캐시를 삭제할까요?")
-                            .setNegativeButton("취소", null).setPositiveButton("삭제") { _, _ ->
+                        MaterialAlertDialogBuilder(this@MainActivity).setTitle(R.string.delete_project)
+                            .setMessage(getString(R.string.delete_project_message, value.name))
+                            .setNegativeButton(R.string.cancel, null).setPositiveButton(R.string.delete) { _, _ ->
                                 store.deleteProject(value.id)
                                 RefreshJobService.schedulePeriodic(this@MainActivity)
                                 RoadockWidget.updateAll(this@MainActivity)
                                 showPage()
                             }.show()
                     }
-                    4 -> pinWidget()
-                    5 -> MaterialAlertDialogBuilder(this@MainActivity).setTitle("Pretendard")
-                        .setMessage(resources.openRawResource(R.raw.pretendard_license).bufferedReader().use { reader -> reader.readText() })
-                        .setPositiveButton("확인", null).show()
+                    4 -> projectDialog()
+                    5 -> LicenseDialog.show(this@MainActivity)
                 }
                 true
             }
@@ -334,12 +344,14 @@ class MainActivity : AppCompatActivity() {
 
     private fun projectDialog(project: Project? = null) {
         val form = column().apply { setPadding(dp(24), dp(8), dp(24), dp(8)) }
-        fun field(caption: String, value: String, fieldTag: String, placeholder: String = ""): TextInputEditText {
+        fun field(caption: Int, value: String, fieldTag: String, example: Int, helper: Int? = null): TextInputEditText {
             val container = TextInputLayout(this).apply {
-                hint = caption
+                hint = getString(caption)
+                isExpandedHintEnabled = false
+                placeholderText = getString(example)
                 boxBackgroundMode = TextInputLayout.BOX_BACKGROUND_OUTLINE
                 setBoxCornerRadii(dp(8).toFloat(), dp(8).toFloat(), dp(8).toFloat(), dp(8).toFloat())
-                if (placeholder.isNotEmpty()) helperText = placeholder
+                if (helper != null) helperText = getString(helper)
             }
             val edit = TextInputEditText(container.context).apply {
                 tag = fieldTag
@@ -347,32 +359,33 @@ class MainActivity : AppCompatActivity() {
                 setSingleLine()
                 filters = arrayOf(InputFilter.LengthFilter(500))
                 inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
-                setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16f)
+                setTextSize(TypedValue.COMPLEX_UNIT_DIP, RoadockDesign.body.toFloat())
             }
             container.addView(edit)
             form.addView(container, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(12) })
             return edit
         }
-        val name = field("이름", project?.name.orEmpty(), "project-name", "생략하면 저장소 이름 사용")
-        val repository = field("GitHub 저장소", project?.let { "${it.owner}/${it.repository}" }.orEmpty(), "project-repository", "owner/repository")
-        val branch = field("브랜치", project?.branch ?: "main", "project-branch")
-        val path = field("Markdown 경로", project?.path ?: "TODO.md", "project-path")
+        val name = field(R.string.project_name, project?.name.orEmpty(), "project-name", R.string.name_example, R.string.project_name_help)
+        val repository = field(R.string.repository_label, project?.let { "${it.owner}/${it.repository}" }.orEmpty(), "project-repository", R.string.repository_example)
+        val branch = field(R.string.branch_label, project?.branch ?: "main", "project-branch", R.string.branch_example)
+        val path = field(R.string.path_label, project?.path ?: "TODO.md", "project-path", R.string.path_example)
         val hasToken = project != null && store.hasToken(project.id)
-        val token = field("GitHub 토큰", "", "project-token", if (hasToken) "비워 두면 저장된 토큰 유지" else "공개 저장소는 생략")
+        val token = field(R.string.token_label, "", "project-token", R.string.token_example,
+            if (hasToken) R.string.token_saved_help else R.string.token_help)
         token.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
         token.isSaveEnabled = false
         token.importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS
-        val clearToken = MaterialCheckBox(this).apply { text = "저장된 토큰 삭제"; visibility = if (hasToken) View.VISIBLE else View.GONE }
+        val clearToken = MaterialCheckBox(this).apply { setText(R.string.remove_token); visibility = if (hasToken) View.VISIBLE else View.GONE }
         form.addView(clearToken)
         val error = RoadockDesign.text(this, "", 12, RoadockDesign.error)
         form.addView(error)
-        val dialog = MaterialAlertDialogBuilder(this).setTitle(if (project == null) "프로젝트 추가" else "프로젝트 설정")
-            .setView(ScrollView(this).apply { addView(form) }).setNegativeButton("취소", null).setPositiveButton("저장", null).create()
+        val dialog = MaterialAlertDialogBuilder(this).setTitle(if (project == null) R.string.add_project else R.string.project_settings)
+            .setView(ScrollView(this).apply { addView(form) }).setNegativeButton(R.string.cancel, null).setPositiveButton(R.string.save, null).create()
         dialog.setOnShowListener {
             dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE).setOnClickListener {
                 try {
                     val parts = repository.text.toString().trim().removePrefix("https://github.com/").trimEnd('/').removeSuffix(".git").split('/')
-                    require(parts.size == 2) { "저장소를 owner/repository 형식으로 입력해 주세요" }
+                    requireInput(parts.size == 2, R.string.error_repository_format)
                     val updated = Project(project?.id ?: java.util.UUID.randomUUID().toString(),
                         name.text.toString().trim().ifBlank { parts[1] }, parts[0], parts[1], branch.text.toString().trim(), path.text.toString().trim())
                     updated.validate()
@@ -386,17 +399,11 @@ class MainActivity : AppCompatActivity() {
                     dialog.dismiss()
                     refresh(updated.id)
                 } catch (failure: Exception) {
-                    error.text = if (failure is IllegalArgumentException) failure.message else "저장에 실패했습니다. 입력 내용을 확인해 주세요"
+                    error.text = if (failure is ValidationException) errorMessage(failure) else getString(R.string.error_save)
                 }
             }
         }
         dialog.show()
-    }
-
-    private fun pinWidget() {
-        val manager = getSystemService(AppWidgetManager::class.java)
-        if (manager.isRequestPinAppWidgetSupported) manager.requestPinAppWidget(ComponentName(this, RoadockWidget::class.java), null, null)
-        else Toast.makeText(this, "홈 화면을 길게 눌러 위젯에서 ROADOCK을 추가해 주세요", Toast.LENGTH_LONG).show()
     }
 
     private fun column() = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }

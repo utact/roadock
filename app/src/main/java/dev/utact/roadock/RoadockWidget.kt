@@ -118,17 +118,16 @@ class RoadockWidget : AppWidgetProvider() {
             val cache = store.cache(page)
             val allRows = rows(context, page)
             val views = RemoteViews(context.packageName, R.layout.roadock_widget)
-            val title = project?.name ?: "개인 할 일"
-            views.setTextViewText(R.id.widget_title, title + if (cache.error == null) "" else " · 갱신 실패")
-            views.setContentDescription(R.id.widget_title, "${project?.name ?: "개인 할 일"}, 앱에서 열기")
+            val title = project?.name ?: context.getString(R.string.personal_tasks)
+            views.setTextViewText(R.id.widget_title, if (cache.error == null) title else context.getString(R.string.refresh_failed_title, title))
             val status = when {
                 cache.error != null -> cache.error
-                allRows.size > MAX_ROWS -> "처음 ${MAX_ROWS}개 · 앱에서 전체 보기"
+                allRows.size > MAX_ROWS -> context.getString(R.string.widget_limit, MAX_ROWS)
                 else -> ""
             }
             views.setTextViewText(R.id.widget_status, status)
             views.setViewVisibility(R.id.widget_status, View.GONE)
-            views.setContentDescription(R.id.widget_title, "${project?.name ?: "개인 할 일"}, 앱에서 열기${if (status.isBlank()) "" else ", $status"}")
+            views.setContentDescription(R.id.widget_title, context.getString(R.string.widget_open, title) + if (status.isBlank()) "" else ", $status")
             views.setTextViewTextSize(R.id.widget_title, TypedValue.COMPLEX_UNIT_PX, pixels(18))
             views.setTextViewTextSize(R.id.widget_status, TypedValue.COMPLEX_UNIT_PX, pixels(12))
             views.setTextViewTextSize(R.id.widget_empty, TypedValue.COMPLEX_UNIT_PX, pixels(13))
@@ -140,9 +139,9 @@ class RoadockWidget : AppWidgetProvider() {
                 views.setInt(it, "setHeight", pixels(48).toInt())
             }
             views.setTextViewText(R.id.widget_empty, when {
-                page == RoadockStore.PERSONAL -> "앱에서 할 일을 추가해 주세요"
-                cache.fetchedAt == 0L -> "새로고침해 체크리스트를 가져오세요"
-                else -> "체크박스 항목이 없습니다"
+                page == RoadockStore.PERSONAL -> context.getString(R.string.widget_empty_tasks)
+                cache.fetchedAt == 0L -> context.getString(R.string.refresh_prompt)
+                else -> context.getString(R.string.empty_checklist)
             })
             views.setEmptyView(R.id.widget_list, R.id.widget_empty)
             if (Build.VERSION.SDK_INT >= 31) {

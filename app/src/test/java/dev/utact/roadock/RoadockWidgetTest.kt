@@ -18,7 +18,7 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
+@Config(sdk = [34], qualifiers = "ko")
 class RoadockWidgetTest {
     private fun layout(view: View) {
         repeat(2) {
@@ -48,7 +48,7 @@ class RoadockWidgetTest {
         layout(root)
         assertFalse(list.canScrollVertically(1))
         assertEquals(29, list.lastVisiblePosition)
-        assertEquals("할 일 0", list.getChildAt(list.childCount - 1).findViewById<TextView>(R.id.widget_row_text).text.toString())
+        assertEquals("할 일 29", list.getChildAt(list.childCount - 1).findViewById<TextView>(R.id.widget_row_text).text.toString())
     }
     @Test fun keepsFullLengthKoreanTaskOnOneCompactRow() {
         val context = RuntimeEnvironment.getApplication()
