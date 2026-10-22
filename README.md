@@ -26,7 +26,7 @@ Download the APK from [Releases](https://github.com/utact/roadock/releases). Req
 
 Write access is required even for public repositories. Tokens are encrypted on the device.
 
-Human completion changes require a connection and create commits on the configured branch. Pull them before PC edits.
+Human updates create GitHub commits. Pull before PC edits.
 
 ## Build
 
@@ -38,6 +38,13 @@ Requires JDK 17 and Android SDK 36. Use `.\gradlew.bat` on Windows.
 
 Debug APK: `app/build/outputs/apk/debug/app-debug.apk`.
 
-Signed releases use `.local/signing.properties`: `storeFile`, `storePassword`, `keyAlias`, `keyPassword`. Run `assembleRelease`; `storeFile` is relative to the project root.
+Release: `assembleRelease` with `.local/signing.properties`:
+
+```properties
+storeFile=<keystore path from project root>
+storePassword=...
+keyAlias=...
+keyPassword=...
+```
 
 [MIT License](LICENSE) · [Checklist](TODO.md) · [Agent Instructions](AGENTS.md) · [Commit Convention](docs/commit-convention.md)
