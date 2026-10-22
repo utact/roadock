@@ -42,7 +42,7 @@ class DependencyUiTest {
         saveCache(project, ChecklistCache(MarkdownChecklist.parse(markdown), 123))
         selectPage(project.id)
         selectWidgetPage(10, project.id)
-        setSplitProjects(split)
+        setWidgetSplitProjects(split)
     }
 
     private fun layout(view: View) {
@@ -64,9 +64,10 @@ class DependencyUiTest {
         return center
     }
 
-    @Test fun appUpdatesWaitingLabelsInBothLayoutsAndRestoresThemOffline() {
+    @Test fun appFiltersKeepHumanPrerequisitesAndRestoreWaitingLabelsOffline() {
         for (split in listOf(false, true)) {
             val store = seed(split)
+            store.setProjectFilter(TaskOwner.AGENT)
             val controller = Robolectric.buildActivity(MainActivity::class.java).setup()
             var root = controller.get().window.decorView
             layout(root)
@@ -82,8 +83,10 @@ class DependencyUiTest {
             assertTrue(centerY(checkbox) < centerY(label(2)))
             label(2).performClick()
             val detail = ShadowDialog.getLatestDialog() as AlertDialog
-            assertEquals("API 실호출 검증\n\nAPI 키 발급 대기",
+            assertEquals("API 실호출 검증",
                 detail.window!!.decorView.findViewWithTag<TextView>("task-full-text").text.toString())
+            assertEquals("Agent", detail.window!!.decorView.findViewWithTag<TextView>("task-owner").text.toString())
+            assertEquals("API 키 발급 대기", detail.window!!.decorView.findViewWithTag<TextView>("task-dependency").text.toString())
             detail.dismiss()
 
             val original = store.cache(project.id)

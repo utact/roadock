@@ -1,5 +1,5 @@
 <resources>
-    <string name="project_layout">프로젝트 목록 배치</string>
+    <string name="widget_project_layout">프로젝트 목록 배치</string>
     <string name="layout_single">단일 열</string>
     <string name="layout_split">2열 분할</string>
     <string name="widget_column_limit">열마다 최대 %1$d개 · 앱에서 전체 보기</string>
@@ -22,10 +22,13 @@
     <string name="error_write_busy">항목을 저장 중입니다. 잠시 후 다시 시도하세요.</string>
     <string name="add_task">할 일 추가</string>
     <string name="add_project">프로젝트 등록</string>
-    <string name="settings">설정</string>
+    <string name="widget_settings">위젯 설정</string>
+    <string name="widget_settings_scope">모든 홈 화면 위젯에 적용됩니다</string>
+    <string name="task_owner_filter">담당 필터</string>
+    <string name="empty_owner_tasks">%1$s 작업이 없습니다</string>
     <string name="project_actions">프로젝트 메뉴</string>
     <string name="view_full_text">전체 내용 보기</string>
-    <string name="widget_text_size">위젯 글자 크기</string>
+    <string name="widget_text_size">글자 크기</string>
     <string name="widget_transparency">배경 투명도</string>
     <string name="last_refreshed">마지막 조회</string>
     <string name="switch_project">%1$s, 프로젝트 전환</string>

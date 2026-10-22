@@ -13,7 +13,7 @@ import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.slider.LabelFormatter
 import com.google.android.material.slider.Slider
 
-object AppSettingsDialog {
+object WidgetSettingsDialog {
     fun show(context: Context) {
         val store = RoadockStore(context)
         fun dp(value: Int) = RoadockDesign.dp(context, value)
@@ -21,10 +21,12 @@ object AppSettingsDialog {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(24), dp(8), dp(24), dp(8))
         }
-        content.addView(RoadockDesign.text(context, context.getString(R.string.project_layout)),
+        content.addView(RoadockDesign.text(context, context.getString(R.string.widget_settings_scope),
+            12, RoadockDesign.secondary), LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(8) })
+        content.addView(RoadockDesign.text(context, context.getString(R.string.widget_project_layout)),
             LinearLayout.LayoutParams(-1, dp(40)))
         content.addView(MaterialButtonToggleGroup(context).apply {
-            tag = "project-layout"
+            tag = "widget-project-layout"
             isSingleSelection = true
             isSelectionRequired = true
             val singleId = View.generateViewId()
@@ -32,7 +34,7 @@ object AppSettingsDialog {
             for ((buttonId, label) in listOf(singleId to R.string.layout_single, splitId to R.string.layout_split)) {
                 addView(MaterialButton(context, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
                     id = buttonId
-                    tag = if (buttonId == singleId) "layout-single" else "layout-split"
+                    tag = if (buttonId == singleId) "widget-layout-single" else "widget-layout-split"
                     setText(label)
                     RoadockDesign.styleText(this, 14, RoadockDesign.text, 500)
                     isAllCaps = false
@@ -44,10 +46,10 @@ object AppSettingsDialog {
                     cornerRadius = dp(8)
                 }, LinearLayout.LayoutParams(0, dp(48), 1f))
             }
-            check(if (store.splitProjects()) splitId else singleId)
+            check(if (store.widgetSplitProjects()) splitId else singleId)
             addOnButtonCheckedListener { _, buttonId, checked ->
                 if (checked) {
-                    store.setSplitProjects(buttonId == splitId)
+                    store.setWidgetSplitProjects(buttonId == splitId)
                     RoadockWidget.updateAll(context)
                 }
             }
@@ -103,7 +105,7 @@ object AppSettingsDialog {
                 setOnClickListener { LicenseDialog.show(context) }
             }, LinearLayout.LayoutParams(-2, dp(48)))
         }, LinearLayout.LayoutParams(-1, dp(48)))
-        MaterialAlertDialogBuilder(context).setTitle(R.string.settings)
+        MaterialAlertDialogBuilder(context).setTitle(R.string.widget_settings)
             .setView(ScrollView(context).apply { addView(content) })
             .setPositiveButton(R.string.close, null).show()
     }

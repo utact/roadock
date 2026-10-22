@@ -13,6 +13,20 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class RoadockStoreTest {
+    @Test fun keepsLegacyWidgetLayoutSeparateFromPersistentProjectFilters() {
+        val context = RuntimeEnvironment.getApplication()
+        context.getSharedPreferences("roadock", Context.MODE_PRIVATE).edit().putBoolean("split-projects", true).commit()
+        val store = RoadockStore(context)
+        assertTrue(store.widgetSplitProjects())
+        assertNull(store.projectFilter())
+        store.setProjectFilter(TaskOwner.AGENT)
+        store.setWidgetSplitProjects(false)
+        assertEquals(TaskOwner.AGENT, RoadockStore(context).projectFilter())
+        assertFalse(RoadockStore(context).widgetSplitProjects())
+        context.getSharedPreferences("roadock", Context.MODE_PRIVATE).edit().putString("project-filter", "unknown").commit()
+        assertNull(RoadockStore(context).projectFilter())
+    }
+
     private lateinit var context: Application
     private lateinit var store: RoadockStore
     private val project = Project("one", "ROADOCK", "utact", "roadock", "main", "TODO.md")

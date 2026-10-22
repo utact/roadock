@@ -21,6 +21,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.checkbox.MaterialCheckBox
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.tabs.TabLayout
@@ -35,10 +36,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tabs: TabLayout
     private lateinit var list: RecyclerView
     private lateinit var primaryPane: ChecklistPane
-    private lateinit var agentPane: ChecklistPane
-    private lateinit var paneDivider: View
-    private lateinit var agentAdapter: ChecklistAdapter
-    private var splitLayout = false
+    private lateinit var ownerFilters: MaterialButtonToggleGroup
+    private val filterButtons = linkedMapOf<TaskOwner?, Int>()
+    private var bindingFilter = false
     private var renderedPage: String? = null
     private lateinit var adapter: ChecklistAdapter
     private lateinit var header: ChecklistHeader
@@ -51,7 +51,7 @@ class MainActivity : AppCompatActivity() {
     private var bindingTabs = false
     private val refreshing = mutableSetOf<String>()
     private val changes = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-        if (key == "projects" || key == "sync-state" || key == "split-projects" || key == "cache-$selected" || (key == "tasks" && personal)) {
+        if (key == "projects" || key == "sync-state" || key == "project-filter" || key == "cache-$selected" || (key == "tasks" && personal)) {
             if (::list.isInitialized) list.post { if (!isDestroyed) showPage() }
         }
     }
@@ -147,13 +147,48 @@ class MainActivity : AppCompatActivity() {
             })
         }
         navigation.addView(tabs, LinearLayout.LayoutParams(0, dp(48), 1f))
-        navigation.addView(RoadockDesign.iconButton(this, R.drawable.ic_settings, getString(R.string.settings), "settings") {
-            AppSettingsDialog.show(this)
+        navigation.addView(RoadockDesign.iconButton(this, R.drawable.ic_settings, getString(R.string.widget_settings), "widget-settings") {
+            WidgetSettingsDialog.show(this)
         }, square())
         root.addView(navigation, LinearLayout.LayoutParams(-1, dp(56)))
 
         header = ChecklistHeader(this)
         root.addView(header, LinearLayout.LayoutParams(-1, -2))
+
+        ownerFilters = MaterialButtonToggleGroup(this).apply {
+            tag = "owner-filters"
+            contentDescription = getString(R.string.task_owner_filter)
+            isSingleSelection = true
+            isSelectionRequired = true
+            for ((owner, label) in listOf(null to R.string.filter_all, TaskOwner.HUMAN to R.string.human, TaskOwner.AGENT to R.string.agent)) {
+                val buttonId = View.generateViewId()
+                filterButtons[owner] = buttonId
+                addView(MaterialButton(this@MainActivity, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+                    id = buttonId
+                    tag = "filter-${owner?.name?.lowercase() ?: "all"}"
+                    setText(label)
+                    RoadockDesign.styleText(this, 13, RoadockDesign.text, 500)
+                    isAllCaps = false
+                    setSingleLine()
+                    minWidth = 0
+                    minimumWidth = 0
+                    insetTop = 0
+                    insetBottom = 0
+                    cornerRadius = dp(8)
+                }, LinearLayout.LayoutParams(0, dp(48), 1f))
+            }
+            addOnButtonCheckedListener { _, buttonId, checked ->
+                if (checked && !bindingFilter) {
+                    store.setProjectFilter(filterButtons.entries.first { it.value == buttonId }.key)
+                    showPage()
+                }
+            }
+        }
+        root.addView(ownerFilters, LinearLayout.LayoutParams(-1, dp(48)).apply {
+            marginStart = dp(24)
+            marginEnd = dp(24)
+            bottomMargin = dp(12)
+        })
 
         adapter = ChecklistAdapter(
             toggle = ::toggleTask,
@@ -161,15 +196,10 @@ class MainActivity : AppCompatActivity() {
             reorder = { store.reorderTasks(it); RoadockWidget.updateAll(this) },
             open = ::showTask,
         )
-        agentAdapter = ChecklistAdapter(::toggleTask, {}, {}, ::showTask)
         primaryPane = ChecklistPane(this, "checklist")
-        agentPane = ChecklistPane(this, "agent-checklist").apply { visibility = View.GONE }
         list = primaryPane.list.apply { adapter = this@MainActivity.adapter }
-        agentPane.list.adapter = agentAdapter
-        primaryPane.heading.apply { setText(R.string.human); tag = "split-human-heading" }
-        agentPane.heading.apply { setText(R.string.agent); tag = "split-agent-heading" }
-        paneDivider = View(this).apply { setBackgroundColor(RoadockDesign.divider); visibility = View.GONE }
         empty = RoadockDesign.text(this, "", 14, RoadockDesign.secondary).apply {
+            tag = "empty-message"
             gravity = Gravity.CENTER
         }
         registerProject = MaterialButton(this).apply {
@@ -193,14 +223,9 @@ class MainActivity : AppCompatActivity() {
             tag = "swipe-refresh"
             setColorSchemeColors(RoadockDesign.text)
             setProgressBackgroundColorSchemeColor(RoadockDesign.surface)
-            setOnChildScrollUpCallback { _, _ -> list.canScrollVertically(-1) ||
-                (splitLayout && agentPane.list.canScrollVertically(-1)) }
+            setOnChildScrollUpCallback { _, _ -> list.canScrollVertically(-1) }
             setOnRefreshListener { currentProject()?.let { refresh(it.id) } }
-            addView(row().apply {
-                addView(primaryPane, LinearLayout.LayoutParams(0, -1, 1f))
-                addView(paneDivider, LinearLayout.LayoutParams(dp(1), -1))
-                addView(agentPane, LinearLayout.LayoutParams(0, -1, 1f))
-            }, android.view.ViewGroup.LayoutParams(-1, -1))
+            addView(primaryPane, android.view.ViewGroup.LayoutParams(-1, -1))
         }
         root.addView(swipeRefresh, LinearLayout.LayoutParams(-1, 0, 1f))
 
@@ -221,14 +246,19 @@ class MainActivity : AppCompatActivity() {
         val saving = project != null && RefreshQueue.pending(project.id) != null
         swipeRefresh.isEnabled = project != null && !saving
         swipeRefresh.isRefreshing = loading
+        val ownerFilter = store.projectFilter()
+        ownerFilters.visibility = if (project != null) View.VISIBLE else View.GONE
+        bindingFilter = true
+        ownerFilters.check(filterButtons.getValue(ownerFilter))
+        bindingFilter = false
         val rows = if (personal) {
             store.tasks().map { ChecklistRow(it.id, it.text, it.checked) }
         } else {
             val dependencies = TaskDependencies(cache.items)
             val tasks = cache.items.mapIndexed { index, item -> ChecklistRow("${project?.id}-$index", item.text,
                 item.checked, item.depth, project?.id, item, item.owner == TaskOwner.HUMAN && !saving && !loading,
-                dependency = dependencies.status(item)) }
-            if (tasks.none { it.source?.owner == TaskOwner.HUMAN }) tasks else buildList {
+                dependency = dependencies.status(item)) }.filter { ownerFilter == null || it.source?.owner == ownerFilter }
+            if (ownerFilter != null || tasks.none { it.source?.owner == TaskOwner.HUMAN }) tasks else buildList {
                 for (owner in TaskOwner.entries) {
                     val group = tasks.filter { it.source?.owner == owner }
                     if (group.isNotEmpty()) {
@@ -238,23 +268,14 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
-        val split = !personal && store.splitProjects() &&
-            cache.items.any { it.owner == TaskOwner.HUMAN } && cache.items.any { it.owner == TaskOwner.AGENT }
-        val displayPage = if (personal) RoadockStore.PERSONAL else selected
-        if (split != splitLayout || renderedPage != displayPage) {
+        val displayPage = if (personal) RoadockStore.PERSONAL else "$selected:${ownerFilter?.name ?: "ALL"}"
+        if (renderedPage != displayPage) {
             list.scrollToPosition(0)
-            agentPane.list.scrollToPosition(0)
         }
-        splitLayout = split
         renderedPage = displayPage
-        primaryPane.heading.visibility = if (split) View.VISIBLE else View.GONE
-        agentPane.heading.visibility = if (split) View.VISIBLE else View.GONE
-        agentPane.visibility = if (split) View.VISIBLE else View.GONE
-        paneDivider.visibility = if (split) View.VISIBLE else View.GONE
-        adapter.submit(if (split) rows.filter { it.section == null && it.source?.owner == TaskOwner.HUMAN } else rows, personal, split)
-        agentAdapter.submit(if (split) rows.filter { it.section == null && it.source?.owner == TaskOwner.AGENT } else emptyList(), false, split)
-        val total = rows.count { it.section == null }
-        val completed = rows.count { it.checked }
+        adapter.submit(rows, personal)
+        val total = if (personal) rows.size else cache.items.size
+        val completed = if (personal) rows.count { it.checked } else cache.items.count { it.checked }
         val progress = if (total == 0) getString(R.string.empty_count) else getString(R.string.completion_count, completed, total)
         header.bind(if (personal) getString(R.string.personal_tasks) else project?.name ?: getString(R.string.projects),
             if (personal) progress else project?.let { "${it.owner}/${it.repository} · $progress" }.orEmpty(),
@@ -271,6 +292,8 @@ class MainActivity : AppCompatActivity() {
             personal -> getString(R.string.empty_tasks)
             projects.isEmpty() -> getString(R.string.empty_projects)
             cache.fetchedAt == 0L -> getString(R.string.refresh_prompt)
+            ownerFilter != null && cache.items.isNotEmpty() -> getString(R.string.empty_owner_tasks,
+                getString(if (ownerFilter == TaskOwner.HUMAN) R.string.human else R.string.agent))
             else -> getString(R.string.empty_checklist)
         }
         emptyState.visibility = if (rows.isEmpty()) View.VISIBLE else View.GONE
@@ -281,7 +304,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateListFade() {
         primaryPane.updateFade()
-        agentPane.updateFade()
     }
 
     private fun chooseProject(anchor: View) {
@@ -318,22 +340,32 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showTask(item: ChecklistRow) {
-        val detail = buildList {
-            add(item.text)
-            item.dependency.description(this@MainActivity).takeIf { it.isNotEmpty() }?.let { add(it) }
-            if (item.dependency.unresolved.isNotEmpty()) add(getString(R.string.dependency_references,
-                item.dependency.unresolved.joinToString(", ")))
-        }.joinToString("\n\n")
-        val content = RoadockDesign.text(this, detail).apply {
-            tag = "task-full-text"
-            setTextIsSelectable(true)
-            setPadding(dp(24), dp(8), dp(24), dp(24))
+        val content = column().apply {
+            setPadding(dp(24), dp(24), dp(24), dp(8))
+            addView(RoadockDesign.text(this@MainActivity, getString(when (item.source?.owner) {
+                TaskOwner.HUMAN -> R.string.human
+                TaskOwner.AGENT -> R.string.agent
+                null -> R.string.task_label
+            }), 12, RoadockDesign.secondary, 500).apply { tag = "task-owner" }, LinearLayout.LayoutParams(-1, -2))
+            addView(RoadockDesign.text(this@MainActivity, item.text, 18, weight = 500).apply {
+                tag = "task-full-text"
+                setTextIsSelectable(true)
+                ViewCompat.setAccessibilityHeading(this, true)
+            }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(8) })
+            item.dependency.description(this@MainActivity).takeIf { it.isNotEmpty() }?.let { description ->
+                addView(RoadockDesign.text(this@MainActivity, description, 13,
+                    if (item.dependency.unresolved.isEmpty()) 0xFFD4BD8A.toInt() else RoadockDesign.error).apply {
+                    tag = "task-dependency"
+                    setTextIsSelectable(true)
+                }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(12) })
+            }
+            if (item.dependency.unresolved.isNotEmpty()) addView(RoadockDesign.text(this@MainActivity,
+                getString(R.string.dependency_references, item.dependency.unresolved.joinToString(", ")),
+                12, RoadockDesign.secondary).apply { setTextIsSelectable(true) },
+                LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(8) })
         }
-        MaterialAlertDialogBuilder(this).setTitle(when (item.source?.owner) {
-            TaskOwner.HUMAN -> R.string.human
-            TaskOwner.AGENT -> R.string.agent
-            null -> R.string.task_label
-        })
+        ViewCompat.setAccessibilityPaneTitle(content, item.text)
+        MaterialAlertDialogBuilder(this)
             .setView(ScrollView(this).apply { addView(content) })
             .setPositiveButton(R.string.close, null).show()
     }

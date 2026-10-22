@@ -271,7 +271,7 @@ class MainActivityTest {
         assertEquals(17f * android.util.DisplayMetrics.DENSITY_DEVICE_STABLE / 160f, RoadockDesign.text(fixed, "본문").textSize, 0.01f)
     }
 
-    @Test fun preservesTitleBaselineAndFirstRowAcrossTabsAndRefreshStates() {
+    @Test fun preservesHeaderAndRowGeometryAroundProjectFiltersAcrossTabsAndRefreshStates() {
         val context = RuntimeEnvironment.getApplication()
         val store = RoadockStore(context)
         val project = Project("one", "ROADOCK", "utact", "roadock", "main", "TODO.md")
@@ -290,7 +290,10 @@ class MainActivityTest {
             title.getLocationOnScreen(xy)
             val baseline = xy[1] + title.baseline
             list.getLocationOnScreen(xy)
-            return listOf(baseline, xy[1], list.getChildAt(0).height)
+            val filters = root.findViewWithTag<View>("owner-filters")
+            val margins = filters.layoutParams as android.view.ViewGroup.MarginLayoutParams
+            val filterSpace = if (filters.isShown) filters.height + margins.topMargin + margins.bottomMargin else 0
+            return listOf(baseline, xy[1] - filterSpace, list.getChildAt(0).height)
         }
         val projectCoordinates = coordinates()
         store.saveCache(project, store.cache(project.id).copy(error = "조회에 실패했습니다. 이전 목록을 표시합니다"))
@@ -380,10 +383,14 @@ class MainActivityTest {
         assertEquals(second.name, title.text.toString())
         assertNull(root.findViewWithTag<View>("task-input"))
         val projectListHeight = root.findViewWithTag<RecyclerView>("checklist").height
+        val filters = root.findViewWithTag<View>("owner-filters")
+        val margins = filters.layoutParams as android.view.ViewGroup.MarginLayoutParams
+        val filterSpace = filters.height + margins.topMargin + margins.bottomMargin
         find<TabLayout>(root)!!.getTabAt(1)!!.select()
         layout(activity)
         assertFalse(title.isClickable)
-        assertEquals(projectListHeight, root.findViewWithTag<RecyclerView>("checklist").height)
+        assertEquals(projectListHeight + filterSpace, root.findViewWithTag<RecyclerView>("checklist").height)
+        assertEquals(View.GONE, filters.visibility)
         val composer = openComposer(activity)
         val input = composer.findViewWithTag<EditText>("task-input")
         val add = composer.findViewWithTag<View>("add-task")
@@ -431,7 +438,7 @@ class MainActivityTest {
         controller.pause().stop().destroy()
     }
 
-    @Test fun keepsGlobalSettingsSeparateFromChecklistActionsAcrossTabs() {
+    @Test fun keepsWidgetSettingsSeparateFromChecklistActionsAcrossTabs() {
         val store = RoadockStore(RuntimeEnvironment.getApplication())
         val project = Project("one", "Roadock", "utact", "roadock", "main", "TODO.md")
         store.saveProject(project)
@@ -445,7 +452,8 @@ class MainActivityTest {
         val activity = controller.get()
         layout(activity)
         val root = activity.window.decorView
-        val settings = root.findViewWithTag<View>("settings")
+        val settings = root.findViewWithTag<View>("widget-settings")
+        assertEquals("위젯 설정", settings.contentDescription.toString())
         val position = IntArray(2)
         settings.getLocationOnScreen(position)
         settings.performClick()
@@ -540,7 +548,7 @@ class MainActivityTest {
             assertEquals(title.paddingEnd, actions.paddingEnd)
             assertEquals(RoadockDesign.dp(activity, 8), title.paddingBottom)
         }
-        AppSettingsDialog.show(activity)
+        WidgetSettingsDialog.show(activity)
         val settings = ShadowDialog.getLatestDialog() as AlertDialog
         verifyPanels(settings)
         settings.dismiss()

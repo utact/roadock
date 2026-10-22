@@ -28,7 +28,6 @@ class ChecklistAdapter(
     private val rows = mutableListOf<ChecklistRow>()
     private val stableIds = mutableMapOf<String, Long>()
     private var nextId = 0L
-    private var compact = false
     var editable = false
         private set
     private var dragging = false
@@ -104,11 +103,10 @@ class ChecklistAdapter(
 
     private fun closeRevealed() { revealed?.close(); revealed = null }
 
-    fun submit(items: List<ChecklistRow>, canEdit: Boolean, compact: Boolean = false) {
-        if (dragging || (items == rows && editable == canEdit && this.compact == compact)) return
+    fun submit(items: List<ChecklistRow>, canEdit: Boolean) {
+        if (dragging || (items == rows && editable == canEdit)) return
         closeRevealed()
         editable = canEdit
-        this.compact = compact
         rows.clear()
         rows.addAll(items)
         notifyDataSetChanged()
@@ -140,7 +138,7 @@ class ChecklistAdapter(
         holder.root.deleteButton.setOnClickListener { delete(item.id) }
         val context = holder.root.context
         val dependencyText = item.dependency.description(context)
-        val mainRowHeight = if (compact) 48 else RoadockDesign.listRow
+        val mainRowHeight = RoadockDesign.listRow
         holder.root.layoutParams.height = RoadockDesign.dp(context,
             mainRowHeight + if (dependencyText.isEmpty()) 0 else 18)
         listOf(holder.check, holder.handle).forEach { control ->
@@ -149,10 +147,10 @@ class ChecklistAdapter(
                 topMargin = RoadockDesign.dp(context, (mainRowHeight - 48) / 2)
             }
         }
-        holder.root.content.setPadding(RoadockDesign.dp(context, if (compact) 4 + item.depth * 4 else RoadockDesign.screenInset - 12 + item.depth * 12),
-            0, RoadockDesign.dp(context, if (compact) 4 else 12), 0)
-        RoadockDesign.styleText(holder.label, if (compact) 13 else RoadockDesign.body)
-        holder.label.layoutParams.height = RoadockDesign.dp(context, if (compact) 19 else 24)
+        holder.root.content.setPadding(RoadockDesign.dp(context, RoadockDesign.screenInset - 12 + item.depth * 12),
+            0, RoadockDesign.dp(context, 12), 0)
+        RoadockDesign.styleText(holder.label, RoadockDesign.body)
+        holder.label.layoutParams.height = RoadockDesign.dp(context, 24)
         holder.check.setOnCheckedChangeListener(null)
         holder.check.tag = "task-${item.id}"
         holder.check.isChecked = item.checked

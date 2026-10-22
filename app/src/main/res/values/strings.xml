@@ -23,11 +23,15 @@
     <string name="error_write_busy">A task is being saved. Try again shortly.</string>
     <string name="add_task">Add task</string>
     <string name="add_project">Add project</string>
-    <string name="settings">Settings</string>
+    <string name="widget_settings">Widget settings</string>
+    <string name="widget_settings_scope">Applies to all home screen widgets</string>
+    <string name="task_owner_filter">Task owner filter</string>
+    <string name="filter_all" translatable="false">All</string>
+    <string name="empty_owner_tasks">No %1$s tasks</string>
     <string name="project_actions">Project options</string>
     <string name="view_full_text">View full text</string>
-    <string name="widget_text_size">Widget text size</string>
-    <string name="project_layout">Project layout</string>
+    <string name="widget_text_size">Text size</string>
+    <string name="widget_project_layout">Project checklist layout</string>
     <string name="layout_single">Single column</string>
     <string name="layout_split">Split columns</string>
     <string name="widget_column_limit">Up to %1$d per column · open app for all</string>

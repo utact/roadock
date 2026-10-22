@@ -148,7 +148,7 @@ class RoadockWidget : AppWidgetProvider() {
             val project = store.projects().find { it.id == page }
             val cache = store.cache(page)
             val allRows = rows(context, page)
-            val split = page != RoadockStore.PERSONAL && store.splitProjects() &&
+            val split = page != RoadockStore.PERSONAL && store.widgetSplitProjects() &&
                 allRows.any { it.owner == TaskOwner.HUMAN } && allRows.any { it.owner == TaskOwner.AGENT }
             val views = RemoteViews(context.packageName, R.layout.roadock_widget)
             appearance(context, views)

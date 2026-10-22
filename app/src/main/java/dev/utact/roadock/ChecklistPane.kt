@@ -6,19 +6,12 @@ import android.view.Gravity
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.LinearLayout
-import androidx.core.view.ViewCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.SimpleItemAnimator
 
 class ChecklistPane(context: Context, listTag: String) : LinearLayout(context) {
     private fun dp(value: Int) = RoadockDesign.dp(context, value)
-    val heading = RoadockDesign.text(context, "", 12, RoadockDesign.secondary, 500).apply {
-        gravity = Gravity.CENTER_VERTICAL
-        setPadding(dp(12), 0, dp(12), 0)
-        visibility = GONE
-        ViewCompat.setAccessibilityHeading(this, true)
-    }
     val list = RecyclerView(context).apply {
         id = View.generateViewId()
         tag = listTag
@@ -41,7 +34,6 @@ class ChecklistPane(context: Context, listTag: String) : LinearLayout(context) {
 
     init {
         orientation = VERTICAL
-        addView(heading, LayoutParams(-1, dp(28)))
         addView(body, LayoutParams(-1, 0, 1f))
         list.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) { updateFade() }

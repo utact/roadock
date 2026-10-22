@@ -9,8 +9,8 @@ Roadock brings GitHub Markdown checklists to your Android home screen, with Huma
 
 - Human completion synced to GitHub; read-only Agent tasks
 - Waiting labels name the Human tasks an Agent task needs first
-- Multiple projects with single-column or split views
-- Independently scrolling lists with cached offline access
+- Full-width project lists with All / Human / Agent filters in the app
+- Single-column or split widgets with independent scrolling and offline access
 - Separate personal tasks with drag sorting and swipe deletion
 - Adjustable widget text size and background transparency
 
