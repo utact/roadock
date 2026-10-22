@@ -6,6 +6,7 @@
 - Types: `build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`, `refactor`, `revert`, `style`, `test`
 - Scope: English `kebab-case` starting with a lowercase letter; omit when unclear
 - Summary: describe the change in Korean; no trailing period
+- App-generated Human checkbox commits: `chore(todo): 사용자 작업 완료 상태 갱신`
 
 ## Body
 

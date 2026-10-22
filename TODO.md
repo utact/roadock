@@ -1,10 +1,22 @@
 # ROADOCK Checklist
 
-## Setup
+## Human
+
+- [ ] 실기기 위젯 전환·스크롤 확인 <!-- roadock:widget-device -->
+- [ ] 실기기 개인 할 일 조작 확인 <!-- roadock:personal-device -->
+- [ ] 원격 변경의 위젯 반영 확인 <!-- roadock:remote-widget -->
+- [ ] 실기기 오프라인 데이터 유지 확인 <!-- roadock:offline-device -->
+- [ ] 실기기 비공개 저장소 인증 확인 <!-- roadock:private-repo -->
+- [ ] Human 체크 원격 저장 확인 <!-- roadock:human-sync -->
+- [ ] 승인 후 GitHub Releases 배포 <!-- roadock:release-approval -->
+
+## Agent
+
+### Setup
 
 - [x] Android·Kotlin 빌드 구성
 
-## GitHub Checklists
+### GitHub Checklists
 
 - [x] 저장소 등록·프로젝트 전환 분리
 - [x] GitHub 토큰 암호화 저장
@@ -12,8 +24,11 @@
 - [x] Markdown 체크박스 파싱
 - [x] 원격 새로고침
 - [x] 체크리스트 오프라인 캐싱
+- [x] Human·Agent 구분과 캐시 보존
+- [x] Human 체크 원격 저장·충돌 처리
+- [x] 동시 변경·실패·중복 저장 검증
 
-## Home Screen Widget
+### Home Screen Widget
 
 - [x] 가로형 한 줄 체크리스트 표시
 - [x] 좌우 전환 및 끝 버튼 비활성화
@@ -21,7 +36,7 @@
 - [x] 새로고침 결과 위젯 반영
 - [x] 실제 행 미리보기·글자 크기 조절
 
-## Personal Checklist
+### Personal Checklist
 
 - [x] 개인 할 일 끝에 추가·완료·삭제
 - [x] 개인 할 일 로컬 저장 및 위젯 표시
@@ -29,9 +44,10 @@
 - [x] 공백 포함 24자 입력 제한
 - [x] 입력 패널 키보드·가로 화면 대응
 
-## Design
+### Design
 
 - [x] 공통 헤더·목록 위계 적용
+- [x] 담당별 표시·Human 체크 연결
 - [x] 공통 설정과 목록별 메뉴 분리
 - [x] 모달 위계·동작 구분 및 메뉴 폭 정리
 - [x] 목록 본문 선택으로 전체 내용 확인
@@ -43,13 +59,7 @@
 - [x] 폰트 라이선스 간결한 표시
 - [x] 대상 프로젝트용 지침 템플릿 추가
 
-## Release and Device Testing
+### Release
 
 - [x] 빌드 방법 문서화
 - [x] APK 빌드
-- [ ] 실기기 위젯 전환·스크롤 확인
-- [ ] 실기기 개인 할 일 조작 확인
-- [ ] 원격 변경의 위젯 반영 확인
-- [ ] 실기기 오프라인 데이터 유지 확인
-- [ ] 실기기 비공개 저장소 인증 확인
-- [ ] 승인 후 GitHub Releases 배포

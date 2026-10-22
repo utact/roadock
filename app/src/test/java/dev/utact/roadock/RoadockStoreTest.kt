@@ -34,6 +34,17 @@ class RoadockStoreTest {
         assertThrows(IllegalArgumentException::class.java) { store.addTask(" ") }
     }
 
+    @Test fun retainsTaskOwnersAndKeysWhileReadingLegacyCachesAsAgent() {
+        store.saveProject(project)
+        val items = listOf(ChecklistItem("키 발급", false, owner = TaskOwner.HUMAN, key = "api-key"),
+            ChecklistItem("구현", true))
+        store.saveCache(project, ChecklistCache(items, 123))
+        assertEquals(items, RoadockStore(context).cache(project.id).items)
+        context.getSharedPreferences("roadock", Context.MODE_PRIVATE).edit().putString("cache-${project.id}",
+            """{"items":[{"text":"이전 항목","checked":true}],"fetchedAt":123}""").commit()
+        assertEquals(listOf(ChecklistItem("이전 항목", true)), RoadockStore(context).cache(project.id).items)
+    }
+
     @Test fun persistsManualOrderThroughCompletionAndWidgetReads() {
         store.addTask("첫째")
         store.addTask("둘째")

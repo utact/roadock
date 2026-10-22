@@ -20,6 +20,45 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "ko")
 class RoadockWidgetTest {
+    @Test fun showsHumanFirstWithCompactSectionsAndNoWriteAction() {
+        val context = RuntimeEnvironment.getApplication()
+        val store = RoadockStore(context)
+        val project = Project("roles", "ROADOCK", "utact", "roadock", "main", "TODO.md")
+        store.saveProject(project)
+        store.saveCache(project, ChecklistCache(listOf(ChecklistItem("구현", true),
+            ChecklistItem("키 발급", false, owner = TaskOwner.HUMAN, key = "key")), 123))
+        store.selectWidgetPage(10, project.id)
+        val root = RoadockWidget.views(context, 10).apply(context, AppWidgetHostView(context))
+        val list = root.findViewById<ListView>(R.id.widget_list)
+        assertEquals(4, list.adapter.count)
+        assertEquals("내 작업", list.adapter.getView(0, null, list).findViewById<TextView>(R.id.widget_section).text.toString())
+        val human = list.adapter.getView(1, null, list)
+        assertEquals("키 발급", human.findViewById<TextView>(R.id.widget_row_text).text.toString())
+        assertFalse(human.isClickable)
+        assertEquals("에이전트", list.adapter.getView(2, null, list).findViewById<TextView>(R.id.widget_section).text.toString())
+        assertEquals("구현", list.adapter.getView(3, null, list).findViewById<TextView>(R.id.widget_row_text).text.toString())
+    }
+
+    @Test @Config(sdk = [28]) fun legacyAdapterUsesTheSameOwnerSections() {
+        val controller = Robolectric.buildService(ChecklistViewsService::class.java).create()
+        val service = controller.get()
+        val store = RoadockStore(service)
+        val project = Project("roles", "ROADOCK", "utact", "roadock", "main", "TODO.md")
+        store.saveProject(project)
+        store.saveCache(project, ChecklistCache(listOf(ChecklistItem("구현", false),
+            ChecklistItem("기기 테스트", false, owner = TaskOwner.HUMAN)), 123))
+        val factory = service.onGetViewFactory(Intent().putExtra("page", project.id))
+        factory.onCreate()
+        assertEquals(4, factory.count)
+        assertEquals(2, factory.viewTypeCount)
+        assertEquals("내 작업", factory.getViewAt(0)!!.apply(service, FrameLayout(service))
+            .findViewById<TextView>(R.id.widget_section).text.toString())
+        assertEquals("기기 테스트", factory.getViewAt(1)!!.apply(service, FrameLayout(service))
+            .findViewById<TextView>(R.id.widget_row_text).text.toString())
+        factory.onDestroy()
+        controller.destroy()
+    }
+
     private fun layout(view: View) {
         repeat(2) {
             view.measure(View.MeasureSpec.makeMeasureSpec(360, View.MeasureSpec.EXACTLY),

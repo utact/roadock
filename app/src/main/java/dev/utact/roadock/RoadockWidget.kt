@@ -87,7 +87,24 @@ class RoadockWidget : AppWidgetProvider() {
             val store = RoadockStore(context)
             return if (page == RoadockStore.PERSONAL) {
                 store.tasks().map { ChecklistItem(it.text, it.checked) }
-            } else store.cache(page).items
+            } else store.cache(page).items.sortedBy { it.owner.ordinal }
+        }
+
+        fun entries(context: Context, page: String): List<RemoteViews> {
+            val tasks = rows(context, page).take(MAX_ROWS)
+            val grouped = page != RoadockStore.PERSONAL && tasks.any { it.owner == TaskOwner.HUMAN }
+            return buildList {
+                var previous: TaskOwner? = null
+                for (item in tasks) {
+                    if (grouped && previous != item.owner) add(RemoteViews(context.packageName, R.layout.widget_section).apply {
+                        setTextViewText(R.id.widget_section, context.getString(if (item.owner == TaskOwner.HUMAN) R.string.human else R.string.agent))
+                        setTextViewTextSize(R.id.widget_section, TypedValue.COMPLEX_UNIT_PX, pixels(10))
+                        setInt(R.id.widget_section, "setHeight", pixels(18).toInt())
+                    })
+                    add(rowView(context, item))
+                    previous = item.owner
+                }
+            }
         }
 
         fun rowView(context: Context, item: ChecklistItem): RemoteViews =
@@ -146,8 +163,8 @@ class RoadockWidget : AppWidgetProvider() {
             })
             views.setEmptyView(R.id.widget_list, R.id.widget_empty)
             if (Build.VERSION.SDK_INT >= 31) {
-                val items = RemoteViews.RemoteCollectionItems.Builder().setHasStableIds(false).setViewTypeCount(1)
-                allRows.take(MAX_ROWS).forEachIndexed { index, item -> items.addItem(index.toLong(), rowView(context, item)) }
+                val items = RemoteViews.RemoteCollectionItems.Builder().setHasStableIds(false).setViewTypeCount(2)
+                entries(context, page).forEachIndexed { index, row -> items.addItem(index.toLong(), row) }
                 views.setRemoteAdapter(R.id.widget_list, items.build())
             } else {
                 val adapter = Intent(context, ChecklistViewsService::class.java).apply {
@@ -186,14 +203,14 @@ class RoadockWidget : AppWidgetProvider() {
 class ChecklistViewsService : RemoteViewsService() {
     override fun onGetViewFactory(intent: Intent): RemoteViewsFactory = object : RemoteViewsFactory {
         private val page = intent.getStringExtra("page") ?: RoadockStore.PERSONAL
-        private var items = emptyList<ChecklistItem>()
+        private var items = emptyList<RemoteViews>()
         override fun onCreate() { onDataSetChanged() }
-        override fun onDataSetChanged() { items = RoadockWidget.rows(applicationContext, page).take(RoadockWidget.MAX_ROWS) }
+        override fun onDataSetChanged() { items = RoadockWidget.entries(applicationContext, page) }
         override fun onDestroy() { items = emptyList() }
         override fun getCount() = items.size
-        override fun getViewAt(position: Int) = items.getOrNull(position)?.let { RoadockWidget.rowView(applicationContext, it) }
+        override fun getViewAt(position: Int) = items.getOrNull(position)
         override fun getLoadingView(): RemoteViews? = null
-        override fun getViewTypeCount() = 1
+        override fun getViewTypeCount() = 2
         override fun getItemId(position: Int) = position.toLong()
         override fun hasStableIds() = false
     }

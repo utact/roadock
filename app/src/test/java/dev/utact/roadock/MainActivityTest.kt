@@ -30,6 +30,80 @@ import org.robolectric.shadows.ShadowDialog
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "ko")
 class MainActivityTest {
+    @Test fun keepsPendingHumanWriteLockedAcrossActivityRecreation() {
+        val context = RuntimeEnvironment.getApplication()
+        val store = RoadockStore(context)
+        val project = Project("pending", "ROADOCK", "utact", "roadock", "main", "TODO.md")
+        val human = ChecklistItem("기기 테스트", false, owner = TaskOwner.HUMAN, key = "device")
+        store.saveProject(project)
+        store.saveCache(project, ChecklistCache(listOf(human), 123))
+        val release = java.util.concurrent.CountDownLatch(1)
+        val client = object : GitHubClient() {
+            override fun setHumanChecked(project: Project, token: String, expected: ChecklistItem, checked: Boolean,
+                sourceIsCurrent: () -> Boolean): List<ChecklistItem> {
+                check(release.await(5, java.util.concurrent.TimeUnit.SECONDS))
+                return listOf(human.copy(checked = true))
+            }
+        }
+        val future = RefreshQueue.setHumanChecked(context, project, human, true, client)!!
+        val controller = Robolectric.buildActivity(MainActivity::class.java).setup()
+        try {
+            layout(controller.get())
+            var root = controller.get().window.decorView
+            assertFalse(root.findViewWithTag<CheckBox>("task-pending-0").isEnabled)
+            assertFalse(root.findViewWithTag<CheckBox>("task-pending-0").isChecked)
+            assertEquals("저장 중…", root.findViewWithTag<TextView>("page-metadata").text.toString())
+            controller.recreate()
+            layout(controller.get())
+            root = controller.get().window.decorView
+            assertFalse(root.findViewWithTag<CheckBox>("task-pending-0").isEnabled)
+            assertEquals("저장 중…", root.findViewWithTag<TextView>("page-metadata").text.toString())
+            release.countDown()
+            future.get(5, java.util.concurrent.TimeUnit.SECONDS)
+            layout(controller.get())
+            assertTrue(root.findViewWithTag<CheckBox>("task-pending-0").isChecked)
+            assertTrue(root.findViewWithTag<CheckBox>("task-pending-0").isEnabled)
+        } finally {
+            release.countDown()
+            future.get(5, java.util.concurrent.TimeUnit.SECONDS)
+            controller.pause().stop().destroy()
+        }
+    }
+
+    @Test fun separatesOwnersDisablesAgentAndKeepsHumanUncheckedWhenCredentialsAreMissing() {
+        val context = RuntimeEnvironment.getApplication()
+        val store = RoadockStore(context)
+        val project = Project("roles", "ROADOCK", "utact", "roadock", "main", "TODO.md")
+        store.saveProject(project)
+        store.saveCache(project, ChecklistCache(listOf(ChecklistItem("인증 구현", false),
+            ChecklistItem("키 발급", false, owner = TaskOwner.HUMAN, key = "key")), 123))
+        val controller = Robolectric.buildActivity(MainActivity::class.java).setup()
+        val activity = controller.get()
+        layout(activity)
+        val root = activity.window.decorView
+        assertEquals("내 작업", root.findViewWithTag<TextView>("section-HUMAN").text.toString())
+        assertEquals("에이전트", root.findViewWithTag<TextView>("section-AGENT").text.toString())
+        val list = root.findViewWithTag<RecyclerView>("checklist")
+        assertEquals(4, list.adapter!!.itemCount)
+        assertEquals("키 발급", list.getChildAt(1).findViewWithTag<TextView>("text-roles-1").text.toString())
+        assertEquals(View.GONE, root.findViewWithTag<View>("reorder-roles-1").visibility)
+        assertFalse(root.findViewWithTag<CheckBox>("task-roles-0").isEnabled)
+        assertFalse(root.findViewWithTag<SwipeTaskRow>("row-roles-1").swipeEnabled)
+        assertEquals("0/2 완료", root.findViewWithTag<TextView>("page-metadata").text.toString().substringAfter(" · "))
+        val human = root.findViewWithTag<CheckBox>("task-roles-1")
+        assertTrue(human.isEnabled)
+        human.performClick()
+        assertFalse(human.isChecked)
+        val deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5)
+        while (RefreshQueue.pending(project.id) != null && System.nanoTime() < deadline) Thread.sleep(10)
+        assertNull(RefreshQueue.pending(project.id))
+        layout(activity)
+        assertFalse(store.cache(project.id).items[1].checked)
+        assertEquals(context.getString(R.string.error_write_token), store.cache(project.id).error)
+        assertFalse(root.findViewWithTag<CheckBox>("task-roles-1").isChecked)
+        controller.pause().stop().destroy()
+    }
+
     private fun layout(activity: MainActivity) {
         shadowOf(Looper.getMainLooper()).idle()
         val root = activity.window.decorView

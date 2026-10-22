@@ -55,7 +55,11 @@ class RoadockStore(context: Context) {
         val array = json.getJSONArray("items")
         ChecklistCache(
             items = (0 until array.length()).map {
-                array.getJSONObject(it).run { ChecklistItem(getString("text"), getBoolean("checked"), optInt("depth")) }
+                array.getJSONObject(it).run {
+                    ChecklistItem(getString("text"), getBoolean("checked"), optInt("depth"),
+                        if (optString("owner") == "HUMAN") TaskOwner.HUMAN else TaskOwner.AGENT,
+                        optString("key").takeIf { value -> value.isNotEmpty() })
+                }
             },
             fetchedAt = json.getLong("fetchedAt"),
             error = json.optString("error").takeIf { it.isNotEmpty() },
@@ -65,7 +69,10 @@ class RoadockStore(context: Context) {
     fun saveCache(project: Project, cache: ChecklistCache): Boolean = synchronized(lock) {
         if (projects().find { it.id == project.id } != project) return@synchronized false
         val items = JSONArray()
-        cache.items.forEach { items.put(JSONObject().put("text", it.text).put("checked", it.checked).put("depth", it.depth)) }
+        cache.items.forEach {
+            items.put(JSONObject().put("text", it.text).put("checked", it.checked).put("depth", it.depth)
+                .put("owner", it.owner.name).apply { it.key?.let { key -> put("key", key) } })
+        }
         val json = JSONObject().put("items", items).put("fetchedAt", cache.fetchedAt)
         cache.error?.let { json.put("error", it) }
         preferences.edit().putString("cache-${project.id}", json.toString()).apply()

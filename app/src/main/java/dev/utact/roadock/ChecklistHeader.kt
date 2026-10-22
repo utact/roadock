@@ -60,7 +60,7 @@ class ChecklistHeader(context: Context) : LinearLayout(context) {
     }
 
     fun bind(name: String, detail: String, completed: Int, total: Int, project: Boolean,
-        loading: Boolean, error: String?, select: (View) -> Unit) {
+        loading: Boolean, error: String?, select: (View) -> Unit, saving: Boolean = false) {
         title.text = name
         title.setProgress(completed, total)
         title.setOnClickListener(if (project) View.OnClickListener { select(it) } else null)
@@ -77,10 +77,11 @@ class ChecklistHeader(context: Context) : LinearLayout(context) {
         title.background = if (project && context.theme.resolveAttribute(android.R.attr.selectableItemBackground, background, true))
             AppCompatResources.getDrawable(context, background.resourceId) else null
         supporting.text = when {
+            saving -> context.getString(R.string.saving)
             loading -> context.getString(R.string.refreshing)
             error != null -> error
             else -> detail
         }
-        supporting.setTextColor(if (!loading && error != null) RoadockDesign.error else RoadockDesign.secondary)
+        supporting.setTextColor(if (!saving && !loading && error != null) RoadockDesign.error else RoadockDesign.secondary)
     }
 }

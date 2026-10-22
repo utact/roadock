@@ -27,6 +27,7 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.checkbox.MaterialCheckBox
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.tabs.TabLayout
+import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import java.text.DateFormat
@@ -48,7 +49,7 @@ class MainActivity : AppCompatActivity() {
     private var bindingTabs = false
     private val refreshing = mutableSetOf<String>()
     private val changes = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-        if (key == "projects" || key == "cache-$selected" || (key == "tasks" && personal)) {
+        if (key == "projects" || key == "sync-state" || key == "cache-$selected" || (key == "tasks" && personal)) {
             if (::list.isInitialized) list.post { if (!isDestroyed) showPage() }
         }
     }
@@ -152,10 +153,10 @@ class MainActivity : AppCompatActivity() {
         root.addView(header, LinearLayout.LayoutParams(-1, -2))
 
         adapter = ChecklistAdapter(
-            toggle = { store.toggleTask(it); RoadockWidget.updateAll(this) },
+            toggle = ::toggleTask,
             delete = { store.deleteTask(it); RoadockWidget.updateAll(this) },
             reorder = { store.reorderTasks(it); RoadockWidget.updateAll(this) },
-            open = { showTask(it.text) },
+            open = ::showTask,
         )
         list = RecyclerView(this).apply {
             id = View.generateViewId()
@@ -226,19 +227,31 @@ class MainActivity : AppCompatActivity() {
         val project = currentProject()
         val cache = project?.let { store.cache(it.id) } ?: ChecklistCache()
         val loading = project != null && project.id in refreshing
-        swipeRefresh.isEnabled = project != null
+        val saving = project != null && RefreshQueue.pending(project.id) != null
+        swipeRefresh.isEnabled = project != null && !saving
         swipeRefresh.isRefreshing = loading
         val rows = if (personal) {
             store.tasks().map { ChecklistRow(it.id, it.text, it.checked) }
         } else {
-            cache.items.mapIndexed { index, item -> ChecklistRow("${project?.id}-$index", item.text, item.checked, item.depth) }
+            val tasks = cache.items.mapIndexed { index, item -> ChecklistRow("${project?.id}-$index", item.text,
+                item.checked, item.depth, project?.id, item, item.owner == TaskOwner.HUMAN && !saving && !loading) }
+            if (tasks.none { it.source?.owner == TaskOwner.HUMAN }) tasks else buildList {
+                for (owner in TaskOwner.entries) {
+                    val group = tasks.filter { it.source?.owner == owner }
+                    if (group.isNotEmpty()) {
+                        add(ChecklistRow("section-$owner", "", false, section = owner))
+                        addAll(group)
+                    }
+                }
+            }
         }
         adapter.submit(rows, personal)
+        val total = rows.count { it.section == null }
         val completed = rows.count { it.checked }
-        val progress = if (rows.isEmpty()) getString(R.string.empty_count) else getString(R.string.completion_count, completed, rows.size)
+        val progress = if (total == 0) getString(R.string.empty_count) else getString(R.string.completion_count, completed, total)
         header.bind(if (personal) getString(R.string.personal_tasks) else project?.name ?: getString(R.string.projects),
             if (personal) progress else project?.let { "${it.owner}/${it.repository} · $progress" }.orEmpty(),
-            completed, rows.size, project != null, loading, cache.error, ::chooseProject)
+            completed, total, project != null, loading, cache.error, ::chooseProject, saving)
         header.setAction(if (personal) R.drawable.ic_add else R.drawable.ic_more,
             getString(if (personal) R.string.add_task else R.string.project_actions),
             if (personal) "add-personal-task" else "project-actions") { anchor ->
@@ -280,13 +293,15 @@ class MainActivity : AppCompatActivity() {
         val project = currentProject()
         val items = mutableListOf(RoadockMenuItem(getString(R.string.add_project)) { projectDialog() })
         if (project != null) {
-            items += RoadockMenuItem(getString(R.string.refresh), enabled = project.id !in refreshing) { refresh(project.id) }
-            items += RoadockMenuItem(getString(R.string.project_settings)) { projectDialog(project) }
+            val idle = RefreshQueue.pending(project.id) == null
+            items += RoadockMenuItem(getString(R.string.refresh), enabled = idle && project.id !in refreshing) { refresh(project.id) }
+            items += RoadockMenuItem(getString(R.string.project_settings), enabled = idle) { projectDialog(project) }
             items += RoadockMenuItem(getString(R.string.sync_info)) { showSyncInfo(project) }
-            items += RoadockMenuItem(getString(R.string.delete_project)) {
+            items += RoadockMenuItem(getString(R.string.delete_project), enabled = idle) {
                 MaterialAlertDialogBuilder(this).setTitle(R.string.delete_project)
                     .setMessage(getString(R.string.delete_project_message, project.name))
                     .setNegativeButton(R.string.cancel, null).setPositiveButton(R.string.delete) { _, _ ->
+                        if (RefreshQueue.pending(project.id) != null) return@setPositiveButton
                         store.deleteProject(project.id)
                         RefreshJobService.schedulePeriodic(this)
                         RoadockWidget.updateAll(this)
@@ -317,18 +332,23 @@ class MainActivity : AppCompatActivity() {
             .setPositiveButton(R.string.close, null).show()
     }
 
-    private fun showTask(text: String) {
-        val content = RoadockDesign.text(this, text).apply {
+    private fun showTask(item: ChecklistRow) {
+        val content = RoadockDesign.text(this, item.text).apply {
             tag = "task-full-text"
             setTextIsSelectable(true)
             setPadding(dp(24), dp(8), dp(24), dp(24))
         }
-        MaterialAlertDialogBuilder(this).setTitle(R.string.task_label)
+        MaterialAlertDialogBuilder(this).setTitle(when (item.source?.owner) {
+            TaskOwner.HUMAN -> R.string.human
+            TaskOwner.AGENT -> R.string.agent
+            null -> R.string.task_label
+        })
             .setView(ScrollView(this).apply { addView(content) })
             .setPositiveButton(R.string.close, null).show()
     }
 
     private fun refresh(projectId: String) {
+        if (RefreshQueue.pending(projectId) != null) return
         if (!refreshing.add(projectId)) return
         showPage()
         RefreshQueue.submit(this, projectId) {
@@ -339,6 +359,32 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    private fun toggleTask(row: ChecklistRow) {
+        val source = row.source
+        if (source == null) {
+            store.toggleTask(row.id)
+            RoadockWidget.updateAll(this)
+            return
+        }
+        if (source.owner != TaskOwner.HUMAN || !row.canToggle) return
+        val project = store.projects().find { it.id == row.projectId } ?: return
+        RefreshQueue.setHumanChecked(this, project, source, !source.checked) { failure ->
+            runOnUiThread {
+                if (isDestroyed || isFinishing) return@runOnUiThread
+                showPage()
+                if (failure != null) {
+                    val message = store.cache(project.id).error ?: errorMessage(failure)
+                    val notice = Snackbar.make(list, message, Snackbar.LENGTH_LONG).setTextMaxLines(3)
+                    if (failure is FetchException && failure.text in listOf(R.string.error_write_token, R.string.error_write_access))
+                        notice.setAction(R.string.project_settings) { projectDialog(project) }
+                    else notice.setAction(R.string.refresh) { refresh(project.id) }
+                    notice.show()
+                }
+            }
+        }
+        showPage()
     }
 
     private fun projectDialog(project: Project? = null) {
@@ -382,6 +428,7 @@ class MainActivity : AppCompatActivity() {
         dialog.setOnShowListener {
             dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE).setOnClickListener {
                 try {
+                    requireInput(project == null || RefreshQueue.pending(project.id) == null, R.string.error_write_busy)
                     val parts = repository.text.toString().trim().removePrefix("https://github.com/").trimEnd('/').removeSuffix(".git").split('/')
                     requireInput(parts.size == 2, R.string.error_repository_format)
                     val updated = Project(project?.id ?: java.util.UUID.randomUUID().toString(),

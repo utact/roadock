@@ -13,14 +13,16 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.checkbox.MaterialCheckBox
 
-data class ChecklistRow(val id: String, val text: String, val checked: Boolean, val depth: Int = 0)
+data class ChecklistRow(val id: String, val text: String, val checked: Boolean, val depth: Int = 0,
+    val projectId: String? = null, val source: ChecklistItem? = null,
+    val canToggle: Boolean = false, val section: TaskOwner? = null)
 
 class ChecklistAdapter(
-    private val toggle: (String) -> Unit,
+    private val toggle: (ChecklistRow) -> Unit,
     private val delete: (String) -> Unit,
     private val reorder: (List<String>) -> Unit,
     private val open: (ChecklistRow) -> Unit,
-) : RecyclerView.Adapter<ChecklistAdapter.Holder>() {
+) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     private val rows = mutableListOf<ChecklistRow>()
     private val stableIds = mutableMapOf<String, Long>()
     private var nextId = 0L
@@ -111,11 +113,20 @@ class ChecklistAdapter(
     override fun getItemCount() = rows.size
     override fun getItemId(position: Int): Long = stableIds.getOrPut(rows[position].id) { nextId++ }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder = Holder(parent)
+    override fun getItemViewType(position: Int) = if (rows[position].section == null) 0 else 1
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder =
+        if (viewType == 1) SectionHolder(parent) else Holder(parent)
 
     @SuppressLint("ClickableViewAccessibility")
-    override fun onBindViewHolder(holder: Holder, position: Int) {
+    override fun onBindViewHolder(viewHolder: RecyclerView.ViewHolder, position: Int) {
         val item = rows[position]
+        if (viewHolder is SectionHolder) {
+            viewHolder.label.setText(if (item.section == TaskOwner.HUMAN) R.string.human else R.string.agent)
+            viewHolder.label.tag = "section-${item.section}"
+            return
+        }
+        val holder = viewHolder as Holder
         holder.root.tag = "row-${item.id}"
         holder.root.close(false)
         holder.root.swipeEnabled = editable
@@ -128,9 +139,20 @@ class ChecklistAdapter(
         holder.check.setOnCheckedChangeListener(null)
         holder.check.tag = "task-${item.id}"
         holder.check.isChecked = item.checked
-        holder.check.isEnabled = editable
-        holder.check.contentDescription = if (editable) item.text else holder.root.context.getString(R.string.read_only_task, item.text)
-        holder.check.setOnCheckedChangeListener { _, _ -> if (editable) toggle(item.id) }
+        holder.check.isEnabled = editable || item.canToggle
+        holder.check.contentDescription = if (editable || item.source?.owner == TaskOwner.HUMAN) item.text
+            else holder.root.context.getString(R.string.read_only_task, item.text)
+        var restoring = false
+        holder.check.setOnCheckedChangeListener { _, _ ->
+            if (!restoring && (editable || item.canToggle)) {
+                if (!editable) {
+                    restoring = true
+                    holder.check.isChecked = item.checked
+                    restoring = false
+                }
+                toggle(item)
+            }
+        }
         holder.label.text = item.text
         holder.label.setTextColor(if (item.checked) RoadockDesign.secondary else RoadockDesign.text)
         holder.label.tag = "text-${item.id}"
@@ -168,6 +190,17 @@ class ChecklistAdapter(
         notifyItemMoved(index, destination)
         notifyItemRangeChanged(minOf(index, destination), 2)
         reorder(rows.map { it.id })
+    }
+
+    class SectionHolder(parent: ViewGroup) : RecyclerView.ViewHolder(
+        RoadockDesign.text(parent.context, "", 12, RoadockDesign.secondary).apply {
+            typeface = RoadockDesign.font(context, 500)
+            gravity = android.view.Gravity.CENTER_VERTICAL
+            setPadding(RoadockDesign.dp(context, 24), 0, RoadockDesign.dp(context, 24), 0)
+            layoutParams = RecyclerView.LayoutParams(-1, RoadockDesign.dp(context, 28))
+            ViewCompat.setAccessibilityHeading(this, true)
+        }) {
+        val label = itemView as android.widget.TextView
     }
 
     class Holder(parent: ViewGroup) : RecyclerView.ViewHolder(SwipeTaskRow(parent.context)) {

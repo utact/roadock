@@ -1,0 +1,5 @@
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_section" android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:fontFamily="@font/roadock_sans" android:textStyle="bold" android:textColor="#909090"
+    android:includeFontPadding="false" android:gravity="center_vertical" android:singleLine="true"
+    android:accessibilityHeading="true" />

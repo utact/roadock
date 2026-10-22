@@ -6,7 +6,8 @@ import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 
 class ValidationException(val text: Int, vararg val values: Any) : IllegalArgumentException()
-class FetchException(val text: Int, vararg val values: Any) : IOException()
+open class FetchException(val text: Int, vararg val values: Any) : IOException()
+class HumanWriteConflict(val items: List<ChecklistItem>, text: Int) : FetchException(text)
 
 fun requireInput(condition: Boolean, text: Int, vararg values: Any) {
     if (!condition) throw ValidationException(text, *values)
