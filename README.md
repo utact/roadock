@@ -21,7 +21,8 @@ Download the APK from [Releases](https://github.com/utact/roadock/releases). Req
 
 ## Setup
 
-1. Append the [agent template](templates/roadock-agent.md) to your project's `AGENTS.md`.
+1. Add the complete [agent template](templates/roadock-agent.md), including its boundary comments, to your project's `AGENTS.md`.
+   Update an existing ROADOCK block in place.
 2. Maintain `TODO.md` under `## Human` and `## Agent`, with stable Human task IDs.
 3. Commit and push the file to GitHub.
 4. Register its repository, branch, and path in the app.
@@ -33,6 +34,9 @@ Roadock shows a waiting label until that Human task is complete. See the [templa
 Write access is required even for public repositories. Tokens are encrypted on the device.
 
 Human updates create GitHub commits. Pull before PC edits.
+
+Template revisions identify copied instructions and increment whenever the template changes, independently of app releases.
+To update, compare the marked ROADOCK block with its linked source and merge changes while preserving project-specific rules and checklist contents.
 
 ## Build
 

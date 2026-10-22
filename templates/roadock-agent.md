@@ -1,4 +1,7 @@
+<!-- roadock-template: 1 -->
 ## ROADOCK
+
+[Template source](https://github.com/utact/roadock/blob/main/templates/roadock-agent.md)
 
 - Maintain `TODO.md` under `## Human` and `## Agent`; subheadings inherit the owner.
 - Assign ownership by who must act, not importance.
@@ -38,3 +41,4 @@
   Requires: api-key
   실제 응답과 인증 실패 처리를 확인한다.
 ```
+<!-- /roadock-template -->
