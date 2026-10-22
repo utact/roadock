@@ -24,14 +24,16 @@ class RoadockWidgetTest {
         val context = RuntimeEnvironment.getApplication()
         val preview = android.widget.RemoteViews(context.packageName, R.layout.widget_preview).apply(context, FrameLayout(context))
         val rows = preview.findViewById<android.view.ViewGroup>(R.id.widget_preview_rows)
-        assertEquals(3, rows.childCount)
-        val labels = (0 until rows.childCount).map { index ->
+        assertEquals(4, rows.childCount)
+        assertEquals("Human", (rows.getChildAt(0) as TextView).text.toString())
+        assertEquals("Agent", (rows.getChildAt(2) as TextView).text.toString())
+        val labels = listOf(1, 3).map { index ->
             val row = rows.getChildAt(index) as android.view.ViewGroup
             assertNotNull((row.getChildAt(0) as android.widget.ImageView).drawable)
             (row.getChildAt(1) as TextView).text.toString()
         }
-        assertEquals(context.getString(R.string.widget_sample_title), preview.findViewById<TextView>(R.id.widget_title).text.toString())
-        assertEquals(listOf(R.string.widget_sample_build, R.string.widget_sample_errors, R.string.widget_sample_test)
+        assertEquals("Roadock", preview.findViewById<TextView>(R.id.widget_title).text.toString())
+        assertEquals(listOf(R.string.widget_sample_human, R.string.widget_sample_agent)
             .map { context.getString(it) }, labels)
     }
 
@@ -77,11 +79,11 @@ class RoadockWidgetTest {
         val root = RoadockWidget.views(context, 10).apply(context, AppWidgetHostView(context))
         val list = root.findViewById<ListView>(R.id.widget_list)
         assertEquals(4, list.adapter.count)
-        assertEquals("내 작업", list.adapter.getView(0, null, list).findViewById<TextView>(R.id.widget_section).text.toString())
+        assertEquals("Human", list.adapter.getView(0, null, list).findViewById<TextView>(R.id.widget_section).text.toString())
         val human = list.adapter.getView(1, null, list)
         assertEquals("키 발급", human.findViewById<TextView>(R.id.widget_row_text).text.toString())
         assertFalse(human.isClickable)
-        assertEquals("에이전트", list.adapter.getView(2, null, list).findViewById<TextView>(R.id.widget_section).text.toString())
+        assertEquals("Agent", list.adapter.getView(2, null, list).findViewById<TextView>(R.id.widget_section).text.toString())
         assertEquals("구현", list.adapter.getView(3, null, list).findViewById<TextView>(R.id.widget_row_text).text.toString())
     }
 
@@ -97,7 +99,7 @@ class RoadockWidgetTest {
         factory.onCreate()
         assertEquals(4, factory.count)
         assertEquals(2, factory.viewTypeCount)
-        assertEquals("내 작업", factory.getViewAt(0)!!.apply(service, FrameLayout(service))
+        assertEquals("Human", factory.getViewAt(0)!!.apply(service, FrameLayout(service))
             .findViewById<TextView>(R.id.widget_section).text.toString())
         assertEquals("기기 테스트", factory.getViewAt(1)!!.apply(service, FrameLayout(service))
             .findViewById<TextView>(R.id.widget_row_text).text.toString())

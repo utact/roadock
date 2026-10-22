@@ -81,8 +81,8 @@ class MainActivityTest {
         val activity = controller.get()
         layout(activity)
         val root = activity.window.decorView
-        assertEquals("내 작업", root.findViewWithTag<TextView>("section-HUMAN").text.toString())
-        assertEquals("에이전트", root.findViewWithTag<TextView>("section-AGENT").text.toString())
+        assertEquals("Human", root.findViewWithTag<TextView>("section-HUMAN").text.toString())
+        assertEquals("Agent", root.findViewWithTag<TextView>("section-AGENT").text.toString())
         val list = root.findViewWithTag<RecyclerView>("checklist")
         assertEquals(4, list.adapter!!.itemCount)
         assertEquals("키 발급", list.getChildAt(1).findViewWithTag<TextView>("text-roles-1").text.toString())

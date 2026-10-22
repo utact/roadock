@@ -9,8 +9,8 @@
     <string name="projects">Projects</string>
     <string name="personal">Personal</string>
     <string name="personal_tasks">Personal tasks</string>
-    <string name="human">Human</string>
-    <string name="agent">Agent</string>
+    <string name="human" translatable="false">Human</string>
+    <string name="agent" translatable="false">Agent</string>
     <string name="saving">Saving…</string>
     <string name="error_agent_read_only">Only Human tasks can be checked in the app</string>
     <string name="error_write_token">Add a token with Contents write access in project settings</string>
@@ -28,10 +28,8 @@
     <string name="view_full_text">View full text</string>
     <string name="widget_text_size">Widget text size</string>
     <string name="widget_transparency">Background transparency</string>
-    <string name="widget_sample_title">Sample project</string>
-    <string name="widget_sample_build">Build sign-in screen</string>
-    <string name="widget_sample_errors">Refine error messages</string>
-    <string name="widget_sample_test">Test sign-in on device</string>
+    <string name="widget_sample_human" translatable="false">Test on device</string>
+    <string name="widget_sample_agent" translatable="false">Sync checklists</string>
     <string name="last_refreshed">Last refreshed</string>
     <string name="switch_project">%1$s, switch project</string>
     <string name="completion_count">%1$d/%2$d completed</string>

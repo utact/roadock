@@ -6,8 +6,6 @@
     <string name="projects">프로젝트</string>
     <string name="personal">개인</string>
     <string name="personal_tasks">개인 할 일</string>
-    <string name="human">내 작업</string>
-    <string name="agent">에이전트</string>
     <string name="saving">저장 중…</string>
     <string name="error_agent_read_only">앱에서는 Human 항목만 완료 처리할 수 있습니다</string>
     <string name="error_write_token">프로젝트 설정에 Contents 쓰기 토큰을 등록하세요</string>
@@ -25,10 +23,6 @@
     <string name="view_full_text">전체 내용 보기</string>
     <string name="widget_text_size">위젯 글자 크기</string>
     <string name="widget_transparency">배경 투명도</string>
-    <string name="widget_sample_title">샘플 프로젝트</string>
-    <string name="widget_sample_build">로그인 화면 구현</string>
-    <string name="widget_sample_errors">로그인 오류 메시지 정리</string>
-    <string name="widget_sample_test">실기기 로그인 확인</string>
     <string name="last_refreshed">마지막 조회</string>
     <string name="switch_project">%1$s, 프로젝트 전환</string>
     <string name="completion_count">%1$d/%2$d 완료</string>
