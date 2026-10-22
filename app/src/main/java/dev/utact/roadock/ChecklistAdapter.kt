@@ -26,6 +26,7 @@ class ChecklistAdapter(
     private val rows = mutableListOf<ChecklistRow>()
     private val stableIds = mutableMapOf<String, Long>()
     private var nextId = 0L
+    private var compact = false
     var editable = false
         private set
     private var dragging = false
@@ -101,10 +102,11 @@ class ChecklistAdapter(
 
     private fun closeRevealed() { revealed?.close(); revealed = null }
 
-    fun submit(items: List<ChecklistRow>, canEdit: Boolean) {
-        if (dragging || (items == rows && editable == canEdit)) return
+    fun submit(items: List<ChecklistRow>, canEdit: Boolean, compact: Boolean = false) {
+        if (dragging || (items == rows && editable == canEdit && this.compact == compact)) return
         closeRevealed()
         editable = canEdit
+        this.compact = compact
         rows.clear()
         rows.addAll(items)
         notifyDataSetChanged()
@@ -134,8 +136,11 @@ class ChecklistAdapter(
         holder.root.deleteButton.tag = "delete-${item.id}"
         holder.root.deleteButton.contentDescription = holder.root.context.getString(R.string.delete_task, item.text)
         holder.root.deleteButton.setOnClickListener { delete(item.id) }
-        holder.root.content.setPadding(RoadockDesign.dp(holder.root.context, RoadockDesign.screenInset - 12 + item.depth * 12),
-            0, RoadockDesign.dp(holder.root.context, 12), 0)
+        val context = holder.root.context
+        holder.root.layoutParams.height = RoadockDesign.dp(context, if (compact) 48 else RoadockDesign.listRow)
+        holder.root.content.setPadding(RoadockDesign.dp(context, if (compact) 4 + item.depth * 4 else RoadockDesign.screenInset - 12 + item.depth * 12),
+            0, RoadockDesign.dp(context, if (compact) 4 else 12), 0)
+        RoadockDesign.styleText(holder.label, if (compact) 13 else RoadockDesign.body)
         holder.check.setOnCheckedChangeListener(null)
         holder.check.tag = "task-${item.id}"
         holder.check.isChecked = item.checked

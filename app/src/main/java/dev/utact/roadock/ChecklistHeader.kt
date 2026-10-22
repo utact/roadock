@@ -52,7 +52,8 @@ class ChecklistHeader(context: Context) : LinearLayout(context) {
         addView(supporting, LayoutParams(-1, dp(20)))
     }
 
-    fun setAction(drawable: Int, description: String, tagValue: String, click: (View) -> Unit) {
+    fun setAction(drawable: Int, description: String, tagValue: String, visible: Boolean = true, click: (View) -> Unit) {
+        action.visibility = if (visible) View.VISIBLE else View.INVISIBLE
         action.icon = AppCompatResources.getDrawable(context, drawable)
         action.contentDescription = description
         action.tag = tagValue

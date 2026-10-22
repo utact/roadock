@@ -3,7 +3,6 @@ package dev.utact.roadock
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
-import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.text.InputFilter
 import android.text.InputType
@@ -19,9 +18,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import androidx.recyclerview.widget.SimpleItemAnimator
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.checkbox.MaterialCheckBox
@@ -37,7 +34,12 @@ class MainActivity : AppCompatActivity() {
     private lateinit var store: RoadockStore
     private lateinit var tabs: TabLayout
     private lateinit var list: RecyclerView
-    private lateinit var listFade: View
+    private lateinit var primaryPane: ChecklistPane
+    private lateinit var agentPane: ChecklistPane
+    private lateinit var paneDivider: View
+    private lateinit var agentAdapter: ChecklistAdapter
+    private var splitLayout = false
+    private var renderedPage: String? = null
     private lateinit var adapter: ChecklistAdapter
     private lateinit var header: ChecklistHeader
     private lateinit var swipeRefresh: SwipeRefreshLayout
@@ -49,7 +51,7 @@ class MainActivity : AppCompatActivity() {
     private var bindingTabs = false
     private val refreshing = mutableSetOf<String>()
     private val changes = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-        if (key == "projects" || key == "sync-state" || key == "cache-$selected" || (key == "tasks" && personal)) {
+        if (key == "projects" || key == "sync-state" || key == "split-projects" || key == "cache-$selected" || (key == "tasks" && personal)) {
             if (::list.isInitialized) list.post { if (!isDestroyed) showPage() }
         }
     }
@@ -158,15 +160,14 @@ class MainActivity : AppCompatActivity() {
             reorder = { store.reorderTasks(it); RoadockWidget.updateAll(this) },
             open = ::showTask,
         )
-        list = RecyclerView(this).apply {
-            id = View.generateViewId()
-            tag = "checklist"
-            layoutManager = LinearLayoutManager(this@MainActivity)
-            adapter = this@MainActivity.adapter
-            (itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
-            clipToPadding = false
-            setPadding(0, 0, 0, dp(24))
-        }
+        agentAdapter = ChecklistAdapter(::toggleTask, {}, {}, ::showTask)
+        primaryPane = ChecklistPane(this, "checklist")
+        agentPane = ChecklistPane(this, "agent-checklist").apply { visibility = View.GONE }
+        list = primaryPane.list.apply { adapter = this@MainActivity.adapter }
+        agentPane.list.adapter = agentAdapter
+        primaryPane.heading.apply { setText(R.string.human); tag = "split-human-heading" }
+        agentPane.heading.apply { setText(R.string.agent); tag = "split-agent-heading" }
+        paneDivider = View(this).apply { setBackgroundColor(RoadockDesign.divider); visibility = View.GONE }
         empty = RoadockDesign.text(this, "", 14, RoadockDesign.secondary).apply {
             gravity = Gravity.CENTER
         }
@@ -186,32 +187,21 @@ class MainActivity : AppCompatActivity() {
             addView(empty, LinearLayout.LayoutParams(-1, -2))
             addView(registerProject, LinearLayout.LayoutParams(-2, dp(48)).apply { topMargin = dp(16) })
         }
-        listFade = View(this).apply {
-            tag = "list-fade"
-            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
-            background = GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
-                intArrayOf(RoadockDesign.background and 0x00FFFFFF, RoadockDesign.background))
-            alpha = 0f
-        }
-        list.addOnScrollListener(object : RecyclerView.OnScrollListener() {
-            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) { updateListFade() }
-        })
-        list.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> updateListFade() }
+        primaryPane.body.addView(emptyState, FrameLayout.LayoutParams(-1, -1))
         swipeRefresh = SwipeRefreshLayout(this).apply {
             tag = "swipe-refresh"
             setColorSchemeColors(RoadockDesign.text)
             setProgressBackgroundColorSchemeColor(RoadockDesign.surface)
-            setOnChildScrollUpCallback { _, _ -> list.canScrollVertically(-1) }
+            setOnChildScrollUpCallback { _, _ -> list.canScrollVertically(-1) ||
+                (splitLayout && agentPane.list.canScrollVertically(-1)) }
             setOnRefreshListener { currentProject()?.let { refresh(it.id) } }
-            addView(FrameLayout(this@MainActivity).apply {
-                addView(list, FrameLayout.LayoutParams(-1, -1))
-                addView(emptyState, FrameLayout.LayoutParams(-1, -1))
+            addView(row().apply {
+                addView(primaryPane, LinearLayout.LayoutParams(0, -1, 1f))
+                addView(paneDivider, LinearLayout.LayoutParams(dp(1), -1))
+                addView(agentPane, LinearLayout.LayoutParams(0, -1, 1f))
             }, android.view.ViewGroup.LayoutParams(-1, -1))
         }
-        root.addView(FrameLayout(this).apply {
-            addView(swipeRefresh, FrameLayout.LayoutParams(-1, -1))
-            addView(listFade, FrameLayout.LayoutParams(-1, dp(28), Gravity.BOTTOM))
-        }, LinearLayout.LayoutParams(-1, 0, 1f))
+        root.addView(swipeRefresh, LinearLayout.LayoutParams(-1, 0, 1f))
 
     }
 
@@ -245,7 +235,21 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
-        adapter.submit(rows, personal)
+        val split = !personal && store.splitProjects() &&
+            cache.items.any { it.owner == TaskOwner.HUMAN } && cache.items.any { it.owner == TaskOwner.AGENT }
+        val displayPage = if (personal) RoadockStore.PERSONAL else selected
+        if (split != splitLayout || renderedPage != displayPage) {
+            list.scrollToPosition(0)
+            agentPane.list.scrollToPosition(0)
+        }
+        splitLayout = split
+        renderedPage = displayPage
+        primaryPane.heading.visibility = if (split) View.VISIBLE else View.GONE
+        agentPane.heading.visibility = if (split) View.VISIBLE else View.GONE
+        agentPane.visibility = if (split) View.VISIBLE else View.GONE
+        paneDivider.visibility = if (split) View.VISIBLE else View.GONE
+        adapter.submit(if (split) rows.filter { it.section == null && it.source?.owner == TaskOwner.HUMAN } else rows, personal, split)
+        agentAdapter.submit(if (split) rows.filter { it.section == null && it.source?.owner == TaskOwner.AGENT } else emptyList(), false, split)
         val total = rows.count { it.section == null }
         val completed = rows.count { it.checked }
         val progress = if (total == 0) getString(R.string.empty_count) else getString(R.string.completion_count, completed, total)
@@ -254,7 +258,7 @@ class MainActivity : AppCompatActivity() {
             completed, total, project != null, loading, cache.error, ::chooseProject, saving)
         header.setAction(if (personal) R.drawable.ic_add else R.drawable.ic_more,
             getString(if (personal) R.string.add_task else R.string.project_actions),
-            if (personal) "add-personal-task" else "project-actions") { anchor ->
+            if (personal) "add-personal-task" else "project-actions", visible = personal || project != null) { anchor ->
             if (personal) {
                 if (supportFragmentManager.findFragmentByTag(TaskComposer.TAG) == null)
                     TaskComposer().show(supportFragmentManager, TaskComposer.TAG)
@@ -273,9 +277,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateListFade() {
-        if (!::listFade.isInitialized) return
-        val remaining = list.computeVerticalScrollRange() - list.computeVerticalScrollExtent() - list.computeVerticalScrollOffset()
-        listFade.alpha = if (list.canScrollVertically(1)) (remaining.toFloat() / dp(28)).coerceIn(0f, 1f) else 0f
+        primaryPane.updateFade()
+        agentPane.updateFade()
     }
 
     private fun chooseProject(anchor: View) {
@@ -286,18 +289,17 @@ class MainActivity : AppCompatActivity() {
                 showPage()
                 list.scrollToPosition(0)
             }
-        })
+        } + RoadockMenuItem(getString(R.string.add_project), separated = true) { projectDialog() })
     }
 
     private fun showProjectActions(anchor: View) {
         val project = currentProject()
-        val items = mutableListOf(RoadockMenuItem(getString(R.string.add_project)) { projectDialog() })
+        val items = mutableListOf<RoadockMenuItem>()
         if (project != null) {
             val idle = RefreshQueue.pending(project.id) == null
             items += RoadockMenuItem(getString(R.string.refresh), enabled = idle && project.id !in refreshing) { refresh(project.id) }
-            items += RoadockMenuItem(getString(R.string.project_settings), enabled = idle) { projectDialog(project) }
-            items += RoadockMenuItem(getString(R.string.sync_info)) { showSyncInfo(project) }
-            items += RoadockMenuItem(getString(R.string.delete_project), enabled = idle) {
+            items += RoadockMenuItem(getString(R.string.edit), enabled = idle) { projectDialog(project) }
+            items += RoadockMenuItem(getString(R.string.delete), enabled = idle, separated = true, destructive = true) {
                 MaterialAlertDialogBuilder(this).setTitle(R.string.delete_project)
                     .setMessage(getString(R.string.delete_project_message, project.name))
                     .setNegativeButton(R.string.cancel, null).setPositiveButton(R.string.delete) { _, _ ->
@@ -310,26 +312,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
         RoadockMenu.show(this, anchor, items, Gravity.END)
-    }
-
-    private fun showSyncInfo(project: Project) {
-        val cache = store.cache(project.id)
-        val date = if (cache.fetchedAt == 0L) getString(R.string.not_fetched) else DateFormat.getDateTimeInstance(
-            DateFormat.SHORT, DateFormat.SHORT, resources.configuration.locales[0]).format(Date(cache.fetchedAt))
-        val content = column().apply { setPadding(dp(24), dp(8), dp(24), dp(8)) }
-        fun detail(label: Int, value: String) {
-            content.addView(RoadockDesign.text(this, getString(label), 12, RoadockDesign.secondary))
-            content.addView(RoadockDesign.text(this, value, 16).apply { setTextIsSelectable(true) },
-                LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(4); bottomMargin = dp(16) })
-        }
-        detail(R.string.repository_label, "${project.owner}/${project.repository}")
-        detail(R.string.branch_label, project.branch)
-        detail(R.string.path_label, project.path)
-        detail(R.string.last_refreshed, date)
-        cache.error?.let { content.addView(RoadockDesign.text(this, it, 14, RoadockDesign.error)) }
-        MaterialAlertDialogBuilder(this).setTitle(R.string.sync_info)
-            .setView(ScrollView(this).apply { addView(content) })
-            .setPositiveButton(R.string.close, null).show()
     }
 
     private fun showTask(item: ChecklistRow) {
@@ -421,6 +403,14 @@ class MainActivity : AppCompatActivity() {
         token.importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS
         val clearToken = MaterialCheckBox(this).apply { setText(R.string.remove_token); visibility = if (hasToken) View.VISIBLE else View.GONE }
         form.addView(clearToken)
+        if (project != null) {
+            val cache = store.cache(project.id)
+            val date = if (cache.fetchedAt == 0L) getString(R.string.not_fetched) else DateFormat.getDateTimeInstance(
+                DateFormat.SHORT, DateFormat.SHORT, resources.configuration.locales[0]).format(Date(cache.fetchedAt))
+            form.addView(RoadockDesign.text(this, "${getString(R.string.last_refreshed)} · $date", 12, RoadockDesign.secondary).apply {
+                tag = "last-refreshed"
+            }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(16); bottomMargin = dp(8) })
+        }
         val error = RoadockDesign.text(this, "", 12, RoadockDesign.error)
         form.addView(error)
         val dialog = MaterialAlertDialogBuilder(this).setTitle(if (project == null) R.string.add_project else R.string.project_settings)

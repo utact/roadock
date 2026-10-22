@@ -8,6 +8,8 @@ import android.view.View
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.slider.LabelFormatter
 import com.google.android.material.slider.Slider
 
@@ -19,6 +21,37 @@ object AppSettingsDialog {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(24), dp(8), dp(24), dp(8))
         }
+        content.addView(RoadockDesign.text(context, context.getString(R.string.project_layout)),
+            LinearLayout.LayoutParams(-1, dp(40)))
+        content.addView(MaterialButtonToggleGroup(context).apply {
+            tag = "project-layout"
+            isSingleSelection = true
+            isSelectionRequired = true
+            val singleId = View.generateViewId()
+            val splitId = View.generateViewId()
+            for ((buttonId, label) in listOf(singleId to R.string.layout_single, splitId to R.string.layout_split)) {
+                addView(MaterialButton(context, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+                    id = buttonId
+                    tag = if (buttonId == singleId) "layout-single" else "layout-split"
+                    setText(label)
+                    RoadockDesign.styleText(this, 14, RoadockDesign.text, 500)
+                    isAllCaps = false
+                    setSingleLine()
+                    minWidth = 0
+                    minimumWidth = 0
+                    insetTop = 0
+                    insetBottom = 0
+                    cornerRadius = dp(8)
+                }, LinearLayout.LayoutParams(0, dp(48), 1f))
+            }
+            check(if (store.splitProjects()) splitId else singleId)
+            addOnButtonCheckedListener { _, buttonId, checked ->
+                if (checked) {
+                    store.setSplitProjects(buttonId == splitId)
+                    RoadockWidget.updateAll(context)
+                }
+            }
+        }, LinearLayout.LayoutParams(-1, dp(48)).apply { bottomMargin = dp(16) })
         fun control(label: Int, tagValue: String, initial: Int, from: Int, to: Int, step: Int,
             format: (Int) -> String = { it.toString() }, save: (Int) -> Unit) {
             val value = RoadockDesign.text(context, format(initial), 14, RoadockDesign.secondary).apply {

@@ -77,9 +77,9 @@ class RoadockWidget : AppWidgetProvider() {
             } else store.cache(page).items.sortedBy { it.owner.ordinal }
         }
 
-        fun entries(context: Context, page: String): List<RemoteViews> {
-            val tasks = rows(context, page).take(MAX_ROWS)
-            val grouped = page != RoadockStore.PERSONAL && tasks.any { it.owner == TaskOwner.HUMAN }
+        fun entries(context: Context, page: String, owner: TaskOwner? = null): List<RemoteViews> {
+            val tasks = rows(context, page).filter { owner == null || it.owner == owner }.take(MAX_ROWS)
+            val grouped = owner == null && page != RoadockStore.PERSONAL && tasks.any { it.owner == TaskOwner.HUMAN }
             return buildList {
                 var previous: TaskOwner? = null
                 for (item in tasks) {
@@ -122,8 +122,10 @@ class RoadockWidget : AppWidgetProvider() {
             val manager = AppWidgetManager.getInstance(context)
             manager.updateAppWidget(widgetId, views(context, widgetId))
             if (Build.VERSION.SDK_INT < 31) {
-                @Suppress("DEPRECATION")
-                manager.notifyAppWidgetViewDataChanged(widgetId, R.id.widget_list)
+                listOf(R.id.widget_list, R.id.widget_human_list, R.id.widget_agent_list).forEach {
+                    @Suppress("DEPRECATION")
+                    manager.notifyAppWidgetViewDataChanged(widgetId, it)
+                }
             }
         }
 
@@ -135,13 +137,23 @@ class RoadockWidget : AppWidgetProvider() {
             val project = store.projects().find { it.id == page }
             val cache = store.cache(page)
             val allRows = rows(context, page)
+            val split = page != RoadockStore.PERSONAL && store.splitProjects() &&
+                allRows.any { it.owner == TaskOwner.HUMAN } && allRows.any { it.owner == TaskOwner.AGENT }
             val views = RemoteViews(context.packageName, R.layout.roadock_widget)
             appearance(context, views)
+            views.setViewVisibility(R.id.widget_single, if (split) View.GONE else View.VISIBLE)
+            views.setViewVisibility(R.id.widget_split, if (split) View.VISIBLE else View.GONE)
+            listOf(R.id.widget_human_heading, R.id.widget_agent_heading).forEach {
+                views.setTextViewTextSize(it, TypedValue.COMPLEX_UNIT_PX, pixels(10))
+                views.setInt(it, "setHeight", pixels(18).toInt())
+            }
             val title = project?.name ?: context.getString(R.string.personal_tasks)
             views.setTextViewText(R.id.widget_title, if (cache.error == null) title else context.getString(R.string.refresh_failed_title, title))
             val status = when {
                 cache.error != null -> cache.error
-                allRows.size > MAX_ROWS -> context.getString(R.string.widget_limit, MAX_ROWS)
+                split && TaskOwner.entries.any { owner -> allRows.count { it.owner == owner } > MAX_ROWS } ->
+                    context.getString(R.string.widget_column_limit, MAX_ROWS)
+                !split && allRows.size > MAX_ROWS -> context.getString(R.string.widget_limit, MAX_ROWS)
                 else -> ""
             }
             views.setTextViewText(R.id.widget_status, status)
@@ -155,18 +167,25 @@ class RoadockWidget : AppWidgetProvider() {
                 else -> context.getString(R.string.empty_checklist)
             })
             views.setEmptyView(R.id.widget_list, R.id.widget_empty)
-            if (Build.VERSION.SDK_INT >= 31) {
-                val items = RemoteViews.RemoteCollectionItems.Builder().setHasStableIds(false).setViewTypeCount(2)
-                entries(context, page).forEachIndexed { index, row -> items.addItem(index.toLong(), row) }
-                views.setRemoteAdapter(R.id.widget_list, items.build())
-            } else {
-                val adapter = Intent(context, ChecklistViewsService::class.java).apply {
-                    putExtra("page", page)
-                    data = Uri.parse("roadock://list/$widgetId/$page")
+            fun bindList(viewId: Int, owner: TaskOwner? = null) {
+                if (Build.VERSION.SDK_INT >= 31) {
+                    val items = RemoteViews.RemoteCollectionItems.Builder().setHasStableIds(false).setViewTypeCount(2)
+                    entries(context, page, owner).forEachIndexed { index, row -> items.addItem(index.toLong(), row) }
+                    views.setRemoteAdapter(viewId, items.build())
+                } else {
+                    val adapter = Intent(context, ChecklistViewsService::class.java).apply {
+                        putExtra("page", page)
+                        putExtra("owner", owner?.name)
+                        data = Uri.parse("roadock://list/$widgetId/$page/${owner?.name ?: "all"}")
+                    }
+                    @Suppress("DEPRECATION")
+                    views.setRemoteAdapter(viewId, adapter)
                 }
-                @Suppress("DEPRECATION")
-                views.setRemoteAdapter(R.id.widget_list, adapter)
             }
+            if (split) {
+                bindList(R.id.widget_human_list, TaskOwner.HUMAN)
+                bindList(R.id.widget_agent_list, TaskOwner.AGENT)
+            } else bindList(R.id.widget_list)
             fun activityIntent(): PendingIntent {
                 val intent = Intent(context, MainActivity::class.java).apply {
                     putExtra("page", page)
@@ -196,9 +215,10 @@ class RoadockWidget : AppWidgetProvider() {
 class ChecklistViewsService : RemoteViewsService() {
     override fun onGetViewFactory(intent: Intent): RemoteViewsFactory = object : RemoteViewsFactory {
         private val page = intent.getStringExtra("page") ?: RoadockStore.PERSONAL
+        private val owner = TaskOwner.entries.find { it.name == intent.getStringExtra("owner") }
         private var items = emptyList<RemoteViews>()
         override fun onCreate() { onDataSetChanged() }
-        override fun onDataSetChanged() { items = RoadockWidget.entries(applicationContext, page) }
+        override fun onDataSetChanged() { items = RoadockWidget.entries(applicationContext, page, owner) }
         override fun onDestroy() { items = emptyList() }
         override fun getCount() = items.size
         override fun getViewAt(position: Int) = items.getOrNull(position)

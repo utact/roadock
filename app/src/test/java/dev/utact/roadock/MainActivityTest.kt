@@ -372,7 +372,7 @@ class MainActivityTest {
         val title = root.findViewWithTag<TextView>("page-title")
         assertTrue(title.isClickable)
         title.performClick()
-        assertEquals(2, find<ListView>(ShadowApplication.getInstance().latestPopupWindow.contentView)!!.adapter.count)
+        assertEquals(3, find<ListView>(ShadowApplication.getInstance().latestPopupWindow.contentView)!!.adapter.count)
         assertNull(root.findViewWithTag<View>("add-personal-task"))
         selectTaskMenu(1)
         layout(activity)
@@ -404,11 +404,8 @@ class MainActivityTest {
         assertEquals("Personal tasks", root.findViewWithTag<TextView>("page-title").text.toString())
         find<TabLayout>(root)!!.getTabAt(0)!!.select()
         layout(activity)
-        root.findViewWithTag<View>("project-actions").performClick()
-        val menu = find<ListView>(ShadowApplication.getInstance().latestPopupWindow.contentView)!!
-        assertEquals(listOf("Add project"), (0 until menu.adapter.count).map { menu.adapter.getItem(it).toString() })
-        assertTrue(ShadowApplication.getInstance().latestPopupWindow.width < RoadockDesign.dp(activity, 196))
-        selectTaskMenu(0)
+        assertFalse(root.findViewWithTag<View>("project-actions").isShown)
+        root.findViewWithTag<View>("add-project").performClick()
         val dialog = ShadowDialog.getLatestDialog() as AlertDialog
         val form = dialog.window!!.decorView
         val repository = form.findViewWithTag<EditText>("project-repository")
@@ -485,6 +482,42 @@ class MainActivityTest {
         assertEquals(14f, projectSettings.window!!.decorView.findViewWithTag<Slider>("widget-text-size").value)
         assertEquals(50f, projectSettings.window!!.decorView.findViewWithTag<Slider>("widget-transparency").value)
         projectSettings.dismiss()
+        controller.pause().stop().destroy()
+    }
+
+    @Test fun separatesProjectRegistrationFromCurrentProjectActions() {
+        val store = RoadockStore(RuntimeEnvironment.getApplication())
+        val project = Project("one", "Roadock", "utact", "roadock", "main", "TODO.md")
+        store.saveProject(project)
+        store.selectPage(project.id)
+        val controller = Robolectric.buildActivity(MainActivity::class.java).setup()
+        val activity = controller.get()
+        layout(activity)
+        val root = activity.window.decorView
+        root.findViewWithTag<View>("project-actions").performClick()
+        var menu = find<ListView>(ShadowApplication.getInstance().latestPopupWindow.contentView)!!
+        assertEquals(listOf("새로고침", "편집", "삭제"),
+            (0 until menu.adapter.count).map { menu.adapter.getItem(it).toString() })
+        val remove = menu.adapter.getItem(2) as RoadockMenuItem
+        assertTrue(remove.separated)
+        assertTrue(remove.destructive)
+        assertEquals(RoadockDesign.error, find<TextView>(menu.adapter.getView(2, null, menu))!!.currentTextColor)
+        selectTaskMenu(1)
+        val edit = ShadowDialog.getLatestDialog() as AlertDialog
+        assertTrue(edit.window!!.decorView.findViewWithTag<TextView>("last-refreshed").text.startsWith("마지막 조회 · "))
+        assertEquals("utact/roadock", edit.window!!.decorView.findViewWithTag<EditText>("project-repository").text.toString())
+        edit.dismiss()
+        root.findViewWithTag<View>("page-title").performClick()
+        menu = find<ListView>(ShadowApplication.getInstance().latestPopupWindow.contentView)!!
+        assertEquals(listOf("Roadock", "프로젝트 등록"),
+            (0 until menu.adapter.count).map { menu.adapter.getItem(it).toString() })
+        assertTrue((menu.adapter.getItem(0) as RoadockMenuItem).checked)
+        assertTrue((menu.adapter.getItem(1) as RoadockMenuItem).separated)
+        selectTaskMenu(1)
+        val registration = ShadowDialog.getLatestDialog() as AlertDialog
+        assertNotNull(registration.window!!.decorView.findViewWithTag<View>("project-repository"))
+        assertEquals("", registration.window!!.decorView.findViewWithTag<EditText>("project-repository").text.toString())
+        registration.dismiss()
         controller.pause().stop().destroy()
     }
 

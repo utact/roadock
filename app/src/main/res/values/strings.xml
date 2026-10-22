@@ -13,7 +13,7 @@
     <string name="agent" translatable="false">Agent</string>
     <string name="saving">Saving…</string>
     <string name="error_agent_read_only">Only Human tasks can be checked in the app</string>
-    <string name="error_write_token">Add a token with Contents write access in project settings</string>
+    <string name="error_write_token">Edit the project and add a token with Contents write access</string>
     <string name="error_write_access">Write blocked. Check token permissions and branch rules.</string>
     <string name="error_write_conflict">The file kept changing. Refresh and try again.</string>
     <string name="error_task_conflict">The task changed or is duplicated. Review the refreshed list.</string>
@@ -27,6 +27,10 @@
     <string name="project_actions">Project options</string>
     <string name="view_full_text">View full text</string>
     <string name="widget_text_size">Widget text size</string>
+    <string name="project_layout">Project layout</string>
+    <string name="layout_single">Single column</string>
+    <string name="layout_split">Split columns</string>
+    <string name="widget_column_limit">Up to %1$d per column · open app for all</string>
     <string name="widget_transparency">Background transparency</string>
     <string name="widget_sample_human" translatable="false">Test on device</string>
     <string name="widget_sample_agent" translatable="false">Sync checklists</string>
@@ -40,6 +44,7 @@
     <string name="move_up">Move up</string>
     <string name="move_down">Move down</string>
     <string name="delete">Delete</string>
+    <string name="edit">Edit</string>
     <string name="delete_task">Delete %1$s</string>
     <string name="cancel">Cancel</string>
     <string name="save">Save</string>
@@ -53,8 +58,7 @@
     <string name="refresh">Refresh</string>
     <string name="refreshing">Refreshing…</string>
     <string name="refresh_failed_title">%1$s · refresh failed</string>
-    <string name="project_settings">Project settings</string>
-    <string name="sync_info">Sync details</string>
+    <string name="project_settings">Edit project</string>
     <string name="not_fetched">Not fetched yet</string>
     <string name="delete_project">Remove project</string>
     <string name="delete_project_message">Remove %1$s and its cached checklist?</string>
@@ -78,11 +82,11 @@
     <string name="error_task_empty">Enter a task</string>
     <string name="error_task_length">Use one line with up to %1$d characters</string>
     <string name="error_save">Unable to save. Check the entered values.</string>
-    <string name="error_token_read">Unable to read the token. Save it again in project settings.</string>
+    <string name="error_token_read">Unable to read the token. Edit the project to save it again.</string>
     <string name="error_token">Check the GitHub token</string>
     <string name="error_access">Check repository access or the GitHub request limit</string>
     <string name="error_source">Check the repository, branch, file path, and token access</string>
-    <string name="error_moved">The repository has moved. Update project settings.</string>
+    <string name="error_moved">The repository has moved. Edit the project.</string>
     <string name="error_http">GitHub request failed (%1$d)</string>
     <string name="error_directory">Select a Markdown file, not a directory</string>
     <string name="error_cancelled">Refresh cancelled</string>

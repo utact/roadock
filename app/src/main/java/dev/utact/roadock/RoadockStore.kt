@@ -112,6 +112,8 @@ class RoadockStore(context: Context) {
     }
 
     fun widgetTextSize(): Int = preferences.getInt("widget-text-size", 12).coerceIn(10, 16)
+    fun splitProjects(): Boolean = preferences.getBoolean("split-projects", false)
+    fun setSplitProjects(split: Boolean) { preferences.edit().putBoolean("split-projects", split).apply() }
     fun setWidgetTextSize(size: Int) { preferences.edit().putInt("widget-text-size", size.coerceIn(10, 16)).apply() }
     fun widgetTransparency(): Int = preferences.getInt("widget-transparency", 15).coerceIn(0, 100)
     fun setWidgetTransparency(value: Int) { preferences.edit().putInt("widget-transparency", value.coerceIn(0, 100)).apply() }

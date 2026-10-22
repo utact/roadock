@@ -1,4 +1,8 @@
 <resources>
+    <string name="project_layout">프로젝트 목록 배치</string>
+    <string name="layout_single">단일 열</string>
+    <string name="layout_split">2열 분할</string>
+    <string name="widget_column_limit">열마다 최대 %1$d개 · 앱에서 전체 보기</string>
     <string name="widget_description">체크리스트</string>
     <string name="previous_project">이전 체크리스트</string>
     <string name="next_project">다음 체크리스트</string>
@@ -8,7 +12,7 @@
     <string name="personal_tasks">개인 할 일</string>
     <string name="saving">저장 중…</string>
     <string name="error_agent_read_only">앱에서는 Human 항목만 완료 처리할 수 있습니다</string>
-    <string name="error_write_token">프로젝트 설정에 Contents 쓰기 토큰을 등록하세요</string>
+    <string name="error_write_token">프로젝트 편집에서 Contents 쓰기 토큰을 등록하세요</string>
     <string name="error_write_access">토큰 쓰기 권한과 브랜치 규칙을 확인하세요</string>
     <string name="error_write_conflict">파일 변경이 계속되고 있습니다. 새로고침 후 다시 시도하세요.</string>
     <string name="error_task_conflict">항목이 바뀌었거나 중복됩니다. 갱신된 목록을 확인하세요.</string>
@@ -33,6 +37,7 @@
     <string name="move_up">위로 이동</string>
     <string name="move_down">아래로 이동</string>
     <string name="delete">삭제</string>
+    <string name="edit">편집</string>
     <string name="delete_task">%1$s 삭제</string>
     <string name="cancel">취소</string>
     <string name="save">저장</string>
@@ -46,8 +51,7 @@
     <string name="refresh">새로고침</string>
     <string name="refreshing">새로고침 중…</string>
     <string name="refresh_failed_title">%1$s · 갱신 실패</string>
-    <string name="project_settings">프로젝트 설정</string>
-    <string name="sync_info">동기화 정보</string>
+    <string name="project_settings">프로젝트 편집</string>
     <string name="not_fetched">조회 기록 없음</string>
     <string name="delete_project">프로젝트 삭제</string>
     <string name="delete_project_message">%1$s 등록과 캐시를 삭제할까요?</string>
@@ -65,7 +69,7 @@
     <string name="error_task_empty">할 일을 입력하세요</string>
     <string name="error_task_length">한 줄, %1$d자 이내로 입력하세요</string>
     <string name="error_save">저장할 수 없습니다. 입력 내용을 확인하세요.</string>
-    <string name="error_token_read">토큰을 읽을 수 없습니다. 프로젝트 설정에서 다시 저장하세요.</string>
+    <string name="error_token_read">토큰을 읽을 수 없습니다. 프로젝트 편집에서 다시 저장하세요.</string>
     <string name="error_token">GitHub 토큰을 확인하세요</string>
     <string name="error_access">접근 권한 또는 GitHub 요청 한도를 확인하세요</string>
     <string name="error_source">저장소·브랜치·파일 경로와 토큰 권한을 확인하세요</string>

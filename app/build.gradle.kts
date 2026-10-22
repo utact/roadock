@@ -18,8 +18,8 @@ android {
         applicationId = "dev.utact.roadock"
         minSdk = 26
         targetSdk = 36
-        versionCode = 8
-        versionName = "0.2.3"
+        versionCode = 9
+        versionName = "0.2.4"
     }
 
     signingConfigs {
