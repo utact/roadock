@@ -8,3 +8,5 @@
 - [ ] 실기기 선행 작업 대기 표시 확인 <!-- roadock:dependency-device -->
 
 ## Agent
+
+- [x] 작업 관리 템플릿 간소화
